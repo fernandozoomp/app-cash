@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { formatarMoeda, formatarData } from "@/lib/constants";
+import { formatarMoeda, formatarData, traduzirCategoria } from "@/lib/constants";
 
 export default async function AdegaPage() {
   const supabase = await createSupabaseServerClient();
@@ -117,7 +117,7 @@ export default async function AdegaPage() {
                 >
                   <div>
                     <p className="font-medium">
-                      {t.categoria.replace(/_/g, " ")}
+                      {traduzirCategoria(t.categoria)}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {formatarData(t.data)}

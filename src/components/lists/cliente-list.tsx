@@ -1,15 +1,18 @@
 "use client";
 
 // ============================================================================
-// LISTA DE CLIENTES (com editar e excluir)
+// LISTA DE CLIENTES (com editar e excluir elegante)
 // ============================================================================
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Pencil, Trash2, Loader2, Phone, X } from "lucide-react";
+import { Pencil, Trash2, Loader2, Phone } from "lucide-react";
 
 import { apagarCliente } from "@/app/actions/clientes";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/empty-state";
+import { useConfirm } from "@/components/confirm-dialog";
 import {
   Dialog,
   DialogContent,
@@ -18,27 +21,44 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ClienteForm } from "@/components/forms/cliente-form";
+import { formatarTelefone } from "@/lib/constants";
 import type { Cliente } from "@/lib/types/database";
 
 export function ClienteList({ clientes }: { clientes: Cliente[] }) {
   const [pendente, startTransition] = useTransition();
   const [editando, setEditando] = useState<Cliente | null>(null);
+  const router = useRouter();
+  const confirmar = useConfirm();
 
-  function handleApagar(id: string, nome: string) {
-    if (!confirm(`Apagar o cliente "${nome}"? Esta ação não pode ser desfeita.`))
-      return;
+  async function handleApagar(c: Cliente) {
+    const ok = await confirmar({
+      titulo: `Apagar ${c.nome}?`,
+      descricao:
+        "O cliente será removido. Empréstimos associados continuam, mas sem cliente vinculado. Esta ação não pode ser desfeita.",
+      textoConfirmar: "Apagar",
+      perigoso: true,
+    });
+
+    if (!ok) return;
+
     startTransition(async () => {
-      const r = await apagarCliente(id);
+      const r = await apagarCliente(c.id);
       if (r.error) toast.error(r.error);
-      else toast.success("Cliente apagado.");
+      else {
+        toast.success("Cliente apagado.");
+        router.refresh();
+      }
     });
   }
 
   if (clientes.length === 0) {
     return (
-      <p className="py-8 text-center text-sm text-muted-foreground">
-        Nenhum cliente cadastrado ainda.
-      </p>
+      <EmptyState
+        titulo="Sem clientes cadastrados"
+        descricao="Cadastre seu primeiro cliente para começar a registrar empréstimos."
+        icone="users"
+        compacto
+      />
     );
   }
 
@@ -46,17 +66,20 @@ export function ClienteList({ clientes }: { clientes: Cliente[] }) {
     <>
       <ul className="divide-y">
         {clientes.map((c) => (
-          <li key={c.id} className="flex items-center justify-between py-3 gap-3">
+          <li
+            key={c.id}
+            className="group flex items-center justify-between gap-3 py-3"
+          >
             <div className="min-w-0 flex-1">
               <p className="font-medium">{c.nome}</p>
               {c.telefone && (
-                <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
                   <Phone className="size-3" />
-                  {c.telefone}
+                  {formatarTelefone(c.telefone)}
                 </p>
               )}
               {c.observacoes && (
-                <p className="truncate text-xs italic text-muted-foreground">
+                <p className="mt-0.5 truncate text-xs italic text-muted-foreground">
                   {c.observacoes}
                 </p>
               )}
@@ -66,16 +89,18 @@ export function ClienteList({ clientes }: { clientes: Cliente[] }) {
                 variant="ghost"
                 size="icon"
                 onClick={() => setEditando(c)}
-                className="text-muted-foreground hover:text-primary"
+                className="text-muted-foreground opacity-0 transition-opacity hover:text-primary group-hover:opacity-100"
+                aria-label={`Editar ${c.nome}`}
               >
                 <Pencil className="size-4" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => handleApagar(c.id, c.nome)}
+                onClick={() => handleApagar(c)}
                 disabled={pendente}
-                className="text-muted-foreground hover:text-rose-600"
+                className="text-muted-foreground opacity-0 transition-opacity hover:text-rose-600 group-hover:opacity-100"
+                aria-label={`Apagar ${c.nome}`}
               >
                 {pendente ? (
                   <Loader2 className="size-4 animate-spin" />
@@ -88,7 +113,6 @@ export function ClienteList({ clientes }: { clientes: Cliente[] }) {
         ))}
       </ul>
 
-      {/* Modal de edição */}
       <Dialog
         open={!!editando}
         onOpenChange={(o) => !o && setEditando(null)}
@@ -102,7 +126,10 @@ export function ClienteList({ clientes }: { clientes: Cliente[] }) {
           </DialogHeader>
           <ClienteForm
             clienteEdicao={editando}
-            onSuccess={() => setEditando(null)}
+            onSuccess={() => {
+              setEditando(null);
+              router.refresh();
+            }}
           />
         </DialogContent>
       </Dialog>

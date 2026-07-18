@@ -3,18 +3,18 @@
 // ============================================================================
 // TELA DE LOGIN
 // ============================================================================
+// Textos reescritos com content-humanizer: diretos, sem jargão corporativo,
+// com pequenos toques humanos (ex: dica de senha fraca).
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 
 import { entrar } from "@/app/actions/auth";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -24,10 +24,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [carregando, setCarregando] = useState(false);
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [mostrarSenha, setMostrarSenha] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -43,12 +43,12 @@ export default function LoginPage() {
   }
 
   return (
-    <Card className="shadow-xl">
-      <CardHeader>
-        <CardTitle className="text-2xl">Entrar</CardTitle>
-        <CardDescription>
-          Acesse sua conta para gerenciar seu caixa
-        </CardDescription>
+    <Card className="shadow-xl shadow-primary/5">
+      <CardHeader className="space-y-1">
+        <CardTitle className="text-2xl">Bom te ver de novo 👋</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Entre com seu e-mail e senha para continuar.
+        </p>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
@@ -67,17 +67,41 @@ export default function LoginPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="senha">Senha</Label>
-            <Input
-              id="senha"
-              type="password"
-              placeholder="Sua senha"
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-              required
-              autoComplete="current-password"
-              disabled={carregando}
-            />
+            <div className="flex items-center justify-between">
+              <Label htmlFor="senha">Senha</Label>
+              <Link
+                href="/recuperar-senha"
+                className="text-xs text-primary hover:underline"
+              >
+                Esqueci minha senha
+              </Link>
+            </div>
+            <div className="relative">
+              <Input
+                id="senha"
+                type={mostrarSenha ? "text" : "password"}
+                placeholder="Sua senha"
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
+                required
+                autoComplete="current-password"
+                disabled={carregando}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setMostrarSenha((m) => !m)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+                tabIndex={-1}
+              >
+                {mostrarSenha ? (
+                  <EyeOff className="size-4" />
+                ) : (
+                  <Eye className="size-4" />
+                )}
+              </button>
+            </div>
           </div>
         </CardContent>
         <CardFooter className="mt-6 flex flex-col gap-3">
@@ -92,12 +116,12 @@ export default function LoginPage() {
             )}
           </Button>
           <p className="text-center text-sm text-muted-foreground">
-            Não tem conta?{" "}
+            Ainda não tem conta?{" "}
             <Link
               href="/cadastro"
               className="font-medium text-primary hover:underline"
             >
-              Cadastre-se
+              Criar agora
             </Link>
           </p>
         </CardFooter>

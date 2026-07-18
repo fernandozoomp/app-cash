@@ -74,6 +74,57 @@ export async function sair() {
 }
 
 // --------------------------------------------------------------------------
+// RECUPERAR SENHA (envia e-mail com link de redefinição)
+// --------------------------------------------------------------------------
+export async function recuperarSenha(input: { email: string }) {
+  const supabase = await createSupabaseServerClient();
+
+  // Constrói a URL de redirecionamento após o clique no e-mail.
+  // Em produção usamos a URL da Vercel; em dev, localhost.
+  const origem =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.NODE_ENV === "production"
+      ? "https://app-cash-ten.vercel.app"
+      : "http://localhost:3000");
+
+  const { error } = await supabase.auth.resetPasswordForEmail(
+    input.email.trim().toLowerCase(),
+    { redirectTo: `${origem}/atualizar-senha` },
+  );
+
+  if (error) {
+    return { error: traduzirErroAuth(error.message) };
+  }
+
+  return {
+    sucesso: true,
+    mensagem:
+      "Se o e-mail existir na nossa base, você receberá um link para redefinir a senha. Olhe também no spam.",
+  };
+}
+
+// --------------------------------------------------------------------------
+// ATUALIZAR SENHA (após clicar no link do e-mail)
+// --------------------------------------------------------------------------
+export async function atualizarSenha(input: { senha: string }) {
+  const supabase = await createSupabaseServerClient();
+
+  if (input.senha.length < 6) {
+    return { error: "A senha precisa ter pelo menos 6 caracteres." };
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    password: input.senha,
+  });
+
+  if (error) {
+    return { error: traduzirErroAuth(error.message) };
+  }
+
+  return { sucesso: true };
+}
+
+// --------------------------------------------------------------------------
 // TRADUÇÃO DE ERROS COMUNS DO SUPABASE AUTH
 // --------------------------------------------------------------------------
 function traduzirErroAuth(mensagem: string): string {

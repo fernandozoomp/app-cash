@@ -1,15 +1,19 @@
 "use client";
 
 // ============================================================================
-// FORMULÁRIO DE EMPRÉSTIMO — com cálculo de parcelas EM TEMPO REAL
+// FORMULÁRIO DE EMPRÉSTIMO — com preview em tempo real
 // ============================================================================
-// Enquanto o usuário digita, mostramos uma prévia de como ficam as parcelas.
-// Usamos a MESMA calculadora do servidor (calculadora.ts) para garantir
-// que o preview bate com o que será salvo.
+// Melhorias (Etapa 6):
+// - Cards de resumo em destaque (parcela, total, juros)
+// - Explicação didática do sistema de juros escolhido
+// - Validação visual (campo vermelho se inválido)
+// - Empty state quando não há clientes
+// - Texto humanizado
 
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
+import Link from "next/link";
 
 import { criarEmprestimo } from "@/app/actions/emprestimos";
 import { calcularEmprestimo } from "@/lib/finance/calculadora";
@@ -23,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { formatarMoeda, formatarData } from "@/lib/constants";
 import type { Cliente, SistemaJuros } from "@/lib/types/database";
 
@@ -44,7 +48,7 @@ export function EmprestimoForm({ clientes, onSuccess }: Props) {
   const [sistema, setSistema] = useState<SistemaJuros>("price");
   const [observacoes, setObservacoes] = useState("");
 
-  // Preview do cálculo (recalcula automaticamente quando algo muda)
+  // Preview do cálculo (recalcula automaticamente)
   const preview = useMemo(() => {
     const v = parseFloat(valor);
     const t = parseFloat(taxa);
@@ -68,7 +72,7 @@ export function EmprestimoForm({ clientes, onSuccess }: Props) {
     setCarregando(true);
 
     if (!clienteId) {
-      toast.error("Selecione um cliente.");
+      toast.error("Selecione um cliente antes de criar o empréstimo.");
       setCarregando(false);
       return;
     }
@@ -90,8 +94,13 @@ export function EmprestimoForm({ clientes, onSuccess }: Props) {
       return;
     }
 
-    toast.success("Empréstimo criado com sucesso!");
-    // Limpar
+    toast.success("Empréstimo criado!", {
+      description: preview
+        ? `${preview.parcelas.length} parcelas de ${formatarMoeda(
+            preview.valorParcela,
+          )}`
+        : undefined,
+    });
     setClienteId("");
     setValor("");
     setTaxa("5");
@@ -99,6 +108,8 @@ export function EmprestimoForm({ clientes, onSuccess }: Props) {
     setObservacoes("");
     onSuccess?.();
   }
+
+  const semClientes = clientes.length === 0;
 
   return (
     <div className="space-y-4">
@@ -111,42 +122,45 @@ export function EmprestimoForm({ clientes, onSuccess }: Props) {
               <SelectValue placeholder="Selecione o cliente" />
             </SelectTrigger>
             <SelectContent>
-              {clientes.length === 0 ? (
-                <SelectItem value="_vazio" disabled>
-                  Cadastre clientes primeiro
+              {clientes.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.nome}
                 </SelectItem>
-              ) : (
-                clientes.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.nome}
-                  </SelectItem>
-                ))
-              )}
+              ))}
             </SelectContent>
           </Select>
-          {clientes.length === 0 && (
-            <p className="text-xs text-amber-600">
-              ⚠️ Você precisa cadastrar clientes antes. Vá em Clientes no menu.
-            </p>
+          {semClientes && (
+            <div className="flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+              <AlertCircle className="size-4 shrink-0" />
+              <div>
+                Você precisa cadastrar clientes antes.{" "}
+                <Link
+                  href="/clientes"
+                  className="font-medium text-amber-900 underline"
+                >
+                  Cadastrar agora
+                </Link>
+              </div>
+            </div>
           )}
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          {/* Valor */}
           <div className="space-y-2">
-            <Label htmlFor="valor">Valor (R$) *</Label>
+            <Label htmlFor="valor">Valor emprestado (R$) *</Label>
             <Input
               id="valor"
               type="number"
               step="0.01"
               min="0"
+              inputMode="decimal"
               placeholder="1000"
               value={valor}
               onChange={(e) => setValor(e.target.value)}
               required
+              className="text-base font-semibold"
             />
           </div>
-          {/* Taxa de juros */}
           <div className="space-y-2">
             <Label htmlFor="taxa">Juros (% ao mês)</Label>
             <Input
@@ -154,14 +168,14 @@ export function EmprestimoForm({ clientes, onSuccess }: Props) {
               type="number"
               step="0.01"
               min="0"
+              inputMode="decimal"
               placeholder="5"
               value={taxa}
               onChange={(e) => setTaxa(e.target.value)}
             />
           </div>
-          {/* Parcelas */}
           <div className="space-y-2">
-            <Label htmlFor="parcelas">Nº de parcelas *</Label>
+            <Label htmlFor="parcelas">Número de parcelas *</Label>
             <Input
               id="parcelas"
               type="number"
@@ -172,7 +186,6 @@ export function EmprestimoForm({ clientes, onSuccess }: Props) {
               required
             />
           </div>
-          {/* Data início */}
           <div className="space-y-2">
             <Label htmlFor="data">Data de início</Label>
             <Input
@@ -185,7 +198,6 @@ export function EmprestimoForm({ clientes, onSuccess }: Props) {
           </div>
         </div>
 
-        {/* Sistema de juros */}
         <div className="space-y-2">
           <Label>Sistema de juros</Label>
           <Select
@@ -197,16 +209,20 @@ export function EmprestimoForm({ clientes, onSuccess }: Props) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="price">
-                Tabela Price (parcelas iguais)
+                Tabela Price — parcelas iguais
               </SelectItem>
               <SelectItem value="simples">Juros simples</SelectItem>
             </SelectContent>
           </Select>
+          <p className="text-xs text-muted-foreground">
+            {sistema === "price"
+              ? "Todas as parcelas têm o mesmo valor. É o sistema que os bancos usam."
+              : "Juros direto sobre o valor inicial. Mais simples de explicar pro cliente."}
+          </p>
         </div>
 
-        {/* Observações */}
         <div className="space-y-2">
-          <Label htmlFor="obs">Observações</Label>
+          <Label htmlFor="obs">Observações (opcional)</Label>
           <Input
             id="obs"
             placeholder="Ex: garantia oferecida, referências..."
@@ -218,12 +234,12 @@ export function EmprestimoForm({ clientes, onSuccess }: Props) {
         <Button
           type="submit"
           className="w-full"
-          disabled={carregando || clientes.length === 0}
+          disabled={carregando || semClientes}
         >
           {carregando ? (
             <>
               <Loader2 className="size-4 animate-spin" />
-              Criando empréstimo...
+              Criando...
             </>
           ) : (
             "Criar empréstimo"
@@ -231,49 +247,56 @@ export function EmprestimoForm({ clientes, onSuccess }: Props) {
         </Button>
       </form>
 
-      {/* PREVIEW DAS PARCELAS */}
+      {/* ===== PREVIEW DO EMPRÉSTIMO ===== */}
       {preview && (
-        <Card className="bg-muted/30">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">📊 Prévia do empréstimo</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-3 gap-2 text-center text-sm">
-              <div>
+        <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+          <CardContent className="space-y-3 pt-6">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Prévia do empréstimo
+            </p>
+
+            {/* 3 números principais */}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="text-center">
                 <p className="text-xs text-muted-foreground">Parcela</p>
-                <p className="font-bold text-emerald-600">
+                <p className="num-moeda text-lg font-bold text-primary">
                   {formatarMoeda(preview.valorParcela)}
                 </p>
               </div>
-              <div>
+              <div className="border-x text-center">
                 <p className="text-xs text-muted-foreground">Total</p>
-                <p className="font-bold">
+                <p className="num-moeda text-lg font-bold">
                   {formatarMoeda(preview.valorTotal)}
                 </p>
               </div>
-              <div>
+              <div className="text-center">
                 <p className="text-xs text-muted-foreground">Juros</p>
-                <p className="font-bold text-amber-600">
+                <p className="num-moeda text-lg font-bold text-amber-600">
                   {formatarMoeda(preview.totalJuros)}
                 </p>
               </div>
             </div>
 
-            <details className="text-sm">
-              <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-                Ver tabela de parcelas ({preview.parcelas.length})
+            {/* Detalhes expansíveis */}
+            <details className="group">
+              <summary className="flex cursor-pointer items-center justify-between text-sm text-muted-foreground hover:text-foreground">
+                <span>
+                  Ver todas as {preview.parcelas.length} parcelas
+                </span>
+                <span className="text-xs group-open:hidden">▾</span>
+                <span className="hidden text-xs group-open:inline">▴</span>
               </summary>
-              <ul className="mt-2 space-y-1">
+              <ul className="mt-2 max-h-60 space-y-1 overflow-y-auto text-sm">
                 {preview.parcelas.map((p) => (
                   <li
                     key={p.numero}
-                    className="flex justify-between rounded px-2 py-1 odd:bg-background"
+                    className="flex justify-between gap-2 rounded px-2 py-1 odd:bg-background"
                   >
-                    <span>Parcela {p.numero}</span>
-                    <span className="text-muted-foreground">
+                    <span className="shrink-0">P{p.numero}</span>
+                    <span className="flex-1 truncate text-center text-muted-foreground">
                       {formatarData(p.vencimento)}
                     </span>
-                    <span className="font-medium">
+                    <span className="num-moeda font-medium">
                       {formatarMoeda(p.valor)}
                     </span>
                   </li>

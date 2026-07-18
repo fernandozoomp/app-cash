@@ -55,7 +55,8 @@
   --card-foreground: oklch(0.18 0.02 145);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.18 0.02 145);
-  /* Verde esmeralda — cor principal do app (botões, destaques) */
+  /* Verde esmeralda refinado — cor principal (botões, destaques).
+     Saturação e brilho calibrados para contraste WCAG AA no foreground branco. */
   --primary: oklch(0.55 0.13 152);
   --primary-foreground: oklch(0.99 0.005 145);
   --secondary: oklch(0.96 0.01 145);
@@ -84,6 +85,61 @@
   --sidebar-accent-foreground: oklch(0.97 0.01 145);
   --sidebar-border: oklch(0.3 0.03 152);
   --sidebar-ring: oklch(0.55 0.13 152);
+
+  /* === NOVOS TOKENS (Etapa 1 - Design System refinado) === */
+
+  /* Escala de verde completo (50-900) com saturação progressiva.
+     Baseado no algoritmo de ui-design-system: step 50 = 95% brilho,
+     step 500 = cor base, step 900 = 20% brilho. */
+  --verde-50:  oklch(0.97 0.02 152);
+  --verde-100: oklch(0.94 0.04 152);
+  --verde-200: oklch(0.89 0.06 152);
+  --verde-300: oklch(0.82 0.10 152);
+  --verde-400: oklch(0.72 0.13 152);
+  --verde-500: oklch(0.62 0.14 152);
+  --verde-600: oklch(0.55 0.13 152);  /* = primary */
+  --verde-700: oklch(0.45 0.11 152);
+  --verde-800: oklch(0.35 0.08 152);
+  --verde-900: oklch(0.25 0.05 152);
+
+  /* Cores semânticas explícitas (sucesso/aviso/info)
+     Para usar em badges, toasts e estados visuais. */
+  --success:       oklch(0.60 0.13 152);  /* verde */
+  --success-fg:    oklch(0.99 0 0);
+  --success-soft:  oklch(0.95 0.05 152);
+  --warning:       oklch(0.75 0.15 75);   /* âmbar */
+  --warning-fg:    oklch(0.25 0.05 75);
+  --warning-soft:  oklch(0.95 0.06 75);
+  --info:          oklch(0.60 0.15 240);  /* azul */
+  --info-fg:       oklch(0.99 0 0);
+  --info-soft:     oklch(0.95 0.04 240);
+  --danger:        oklch(0.60 0.20 25);   /* vermelho */
+  --danger-fg:     oklch(0.99 0 0);
+  --danger-soft:   oklch(0.95 0.05 25);
+
+  /* Tipografia fluida com clamp() — escala suave entre mobile e desktop.
+     Fórmula: clamp(mínimo, preferencial, máximo) */
+  --font-size-fluid-xs:   clamp(0.75rem, 0.72rem + 0.1vw, 0.8rem);
+  --font-size-fluid-sm:   clamp(0.875rem, 0.84rem + 0.15vw, 0.95rem);
+  --font-size-fluid-base: clamp(1rem, 0.96rem + 0.2vw, 1.125rem);
+  --font-size-fluid-lg:   clamp(1.125rem, 1.05rem + 0.4vw, 1.3rem);
+  --font-size-fluid-xl:   clamp(1.3rem, 1.15rem + 0.7vw, 1.75rem);
+  --font-size-fluid-2xl:  clamp(1.75rem, 1.45rem + 1.4vw, 2.5rem);
+
+  /* Sombras em camadas (layered shadows) — mais elegantes que sombra única.
+     Inspiradas em Material Design 3, mas mais sutis. */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.08);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.10), 0 8px 10px -6px rgb(0 0 0 / 0.08);
+
+  /* Animações — durações e curvas naturais (easing suave). */
+  --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 400ms;
 }
 
 .dark {
@@ -126,8 +182,100 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Suaviza fontes no macOS/iOS */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Tipografia fluida por padrão */
+    font-size: var(--font-size-fluid-base);
   }
   html {
     @apply font-sans;
+    /* Scroll suave ao clicar em âncoras */
+    scroll-behavior: smooth;
+  }
+  /* Foco acessível visível em todos os elementos interativos (WCAG 2.4.7).
+     Usa o ring verde para identidade do app. */
+  *:focus-visible {
+    @apply outline-2 outline-offset-2 outline-primary;
+  }
+  /* Respeita preferência do usuário por menos movimento (WCAG 2.3.3). */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Badges semânticos reutilizáveis (sucesso, aviso, info, perigo).
+     Usar: <span className="badge-success">Pago</span> */
+  .badge-success {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium;
+    background: var(--success-soft);
+    color: var(--success);
+  }
+  .badge-warning {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium;
+    background: var(--warning-soft);
+    color: var(--warning);
+  }
+  .badge-info {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium;
+    background: var(--info-soft);
+    color: var(--info);
+  }
+  .badge-danger {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium;
+    background: var(--danger-soft);
+    color: var(--danger);
+  }
+
+  /* Alinhamento monetário — alinha números à direita para leitura fácil. */
+  .num-moeda {
+    @apply tabular-nums;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Skeleton screen — placeholder animado durante carregamento. */
+  .skeleton {
+    @apply animate-pulse rounded bg-muted;
+  }
+}
+
+@layer utilities {
+  /* Animação suave de entrada (fade-in + slide-up). */
+  .animate-in-soft {
+    animation: fadeInUp var(--duration-base) var(--ease-out-soft);
+  }
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Impressão — quando usuário der Ctrl+P em relatórios. */
+  @media print {
+    .no-print {
+      display: none !important;
+    }
+  }
+
+  /* Pular para o conteúdo (acessibilidade WCAG 2.4.1).
+     Aparece só quando recebe foco via teclado (Tab). */
+  .skip-link {
+    @apply sr-only;
+  }
+  .skip-link:focus {
+    @apply not-sr-only fixed left-4 top-4 z-[100] rounded-md bg-primary px-4 py-2 text-primary-foreground;
   }
 }

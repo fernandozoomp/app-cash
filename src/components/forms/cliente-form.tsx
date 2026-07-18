@@ -1,10 +1,11 @@
 "use client";
 
 // ============================================================================
-// FORMULÁRIO DE CLIENTE (criar/editar)
+// FORMULÁRIO DE CLIENTE (criar/editar) — com máscara de telefone
 // ============================================================================
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -12,6 +13,7 @@ import { criarCliente, atualizarCliente } from "@/app/actions/clientes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { formatarTelefone } from "@/lib/constants";
 import type { Cliente } from "@/lib/types/database";
 
 interface Props {
@@ -21,7 +23,9 @@ interface Props {
 
 export function ClienteForm({ clienteEdicao, onSuccess }: Props) {
   const [carregando, setCarregando] = useState(false);
+  const [telefone, setTelefone] = useState(clienteEdicao?.telefone || "");
   const editando = !!clienteEdicao;
+  const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -30,7 +34,7 @@ export function ClienteForm({ clienteEdicao, onSuccess }: Props) {
     const formData = new FormData(e.currentTarget);
     const input = {
       nome: formData.get("nome") as string,
-      telefone: (formData.get("telefone") as string) || undefined,
+      telefone: telefone || undefined,
       observacoes: (formData.get("observacoes") as string) || undefined,
     };
 
@@ -47,7 +51,9 @@ export function ClienteForm({ clienteEdicao, onSuccess }: Props) {
 
     toast.success(editando ? "Cliente atualizado!" : "Cliente cadastrado!");
     (e.target as HTMLFormElement).reset();
+    setTelefone("");
     onSuccess?.();
+    router.refresh();
   }
 
   return (
@@ -60,6 +66,7 @@ export function ClienteForm({ clienteEdicao, onSuccess }: Props) {
           placeholder="Nome completo do cliente"
           required
           defaultValue={clienteEdicao?.nome}
+          autoFocus
         />
       </div>
       <div className="space-y-2">
@@ -68,8 +75,14 @@ export function ClienteForm({ clienteEdicao, onSuccess }: Props) {
           id="telefone"
           name="telefone"
           placeholder="(11) 99999-9999"
-          defaultValue={clienteEdicao?.telefone || ""}
+          value={telefone}
+          onChange={(e) => setTelefone(formatarTelefone(e.target.value))}
+          inputMode="tel"
+          maxLength={15}
         />
+        <p className="text-xs text-muted-foreground">
+          Para facilitar o contato quando vencer uma parcela.
+        </p>
       </div>
       <div className="space-y-2">
         <Label htmlFor="observacoes">Observações</Label>

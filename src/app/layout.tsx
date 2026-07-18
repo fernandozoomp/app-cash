@@ -11,6 +11,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 import { Toaster } from "@/components/ui/sonner";
+import { ConfirmProvider } from "@/components/confirm-dialog";
 import { APP_NAME } from "@/lib/constants";
 
 const geistSans = Geist({
@@ -68,7 +69,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        {children}
+        <ConfirmProvider>{children}</ConfirmProvider>
         <Toaster position="top-center" richColors />
       </body>
     </html>

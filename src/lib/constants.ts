@@ -52,6 +52,84 @@ export const formatarMoeda = (valor: number): string =>
 export const formatarData = (data: string | Date): string =>
   new Date(data).toLocaleDateString("pt-BR");
 
+// Formata data por extenso: "quinta-feira, 17 de julho de 2026"
+export const formatarDataExtenso = (data: string | Date): string =>
+  new Date(data).toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+// Formata telefone brasileiro: "(11) 99999-9999"
+export const formatarTelefone = (valor: string): string => {
+  const digitos = valor.replace(/\D/g, "");
+  if (digitos.length === 11) {
+    return `(${digitos.slice(0, 2)}) ${digitos.slice(2, 7)}-${digitos.slice(7)}`;
+  }
+  if (digitos.length === 10) {
+    return `(${digitos.slice(0, 2)}) ${digitos.slice(2, 6)}-${digitos.slice(6)}`;
+  }
+  return valor;
+};
+
+// ------------------------------------------------------------
+// TRADUÇÃO HUMANA DE CATEGORIAS (acaba com snake_case)
+// ------------------------------------------------------------
+// Mapeia códigos internos (em inglês) para textos em português
+// amigáveis. Resolver D1/F1 do diagnóstico.
+export const CATEGORIAS_TRADUZIDAS: Record<string, string> = {
+  // Transações gerais
+  venda: "Venda",
+  compra_estoque: "Compra de estoque",
+  despesa: "Despesa",
+  outros: "Outros",
+  // Empréstimos
+  emprestimo_concedido: "Empréstimo concedido",
+  recebimento_parcela: "Recebimento de parcela",
+  juros: "Juros",
+  // Sucatas
+  venda_sucata: "Venda de sucata",
+  compra_sucata: "Compra de sucata",
+};
+
+// Função helper: traduz categoria ou retorna o original
+export const traduzirCategoria = (categoria: string): string =>
+  CATEGORIAS_TRADUZIDAS[categoria] || categoria.replace(/_/g, " ");
+
+// ------------------------------------------------------------
+// EMPTY STATES (estados vazios amigáveis)
+// ------------------------------------------------------------
+// Quando uma lista está vazia, mostramos uma mensagem acolhedora
+// em vez de só "Nenhum registro encontrado".
+export const EMPTY_STATES = {
+  transacoes: {
+    titulo: "Ainda não há movimentações por aqui",
+    descricao: "Que tal registrar sua primeira venda ou despesa? Leva menos de 30 segundos.",
+    icone: "wallet",
+  },
+  clientes: {
+    titulo: "Sem clientes cadastrados",
+    descricao: "Cadastre seu primeiro cliente para começar a registrar empréstimos.",
+    icone: "users",
+  },
+  emprestimos: {
+    titulo: "Nenhum empréstimo registrado",
+    descricao: "Crie um empréstimo e o sistema calcula as parcelas automaticamente.",
+    icone: "hand-coins",
+  },
+  parcelas: {
+    titulo: "Sem parcelas geradas",
+    descricao: "As parcelas aparecem aqui quando você cria um empréstimo.",
+    icone: "calendar",
+  },
+  sucatas: {
+    titulo: "Nenhuma movimentação de sucata",
+    descricao: "Registre sua primeira compra ou venda para acompanhar o lucro.",
+    icone: "recycle",
+  },
+} as const;
+
 // ------------------------------------------------------------
 // ITENS DO MENU LATERAL
 // ------------------------------------------------------------
