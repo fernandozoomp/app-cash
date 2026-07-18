@@ -28,15 +28,25 @@ import {
   CalendarClock,
   AlertTriangle,
   ArrowRight,
+  BellRing,
 } from "lucide-react";
 import { formatarMoeda, formatarDataExtenso } from "@/lib/constants";
 import { obterResumoCaixa } from "@/app/actions/caixa";
 import { proximosVencimentos } from "@/app/actions/emprestimos";
+import { listarCobrancasPendentes } from "@/app/actions/cobrancas";
 import { statusParcelaVencida } from "@/lib/finance/calculadora";
 import { AtalhosRapidos } from "@/components/charts/atalhos-rapidos";
 import { SaldoLinha } from "@/components/charts/saldo-linha";
 import { DistribuicaoPizza } from "@/components/charts/distribuicao-pizza";
 import { ComparativoBarras } from "@/components/charts/comparativo-barras";
+
+// Helper local: dias até o vencimento
+function diasAte(dataISO: string): number {
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const v = new Date(dataISO + "T00:00:00");
+  return Math.floor((v.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+}
 
 // Saudação inteligente baseada no horário local.
 function saudacao(): string {
@@ -47,9 +57,10 @@ function saudacao(): string {
 }
 
 export default async function DashboardPage() {
-  const [resumo, vencimentos] = await Promise.all([
+  const [resumo, vencimentos, cobrancasPendentes] = await Promise.all([
     obterResumoCaixa(),
     proximosVencimentos(7),
+    listarCobrancasPendentes(),
   ]);
 
   const temDados =
@@ -58,6 +69,15 @@ export default async function DashboardPage() {
     resumo.saidasMes !== 0 ||
     resumo.aReceber !== 0;
 
+  // Métricas para o widget "Cobrar hoje"
+  const atrasadas = cobrancasPendentes.data.filter(
+    (p) => diasAte(p.vencimento) < 0,
+  );
+  const vencemHoje = cobrancasPendentes.data.filter(
+    (p) => diasAte(p.vencimento) === 0,
+  );
+  const totalCobrancasHoje = atrasadas.length + vencemHoje.length;
+
   return (
     <>
       {/* SAUDAÇÃO + DATA */}
@@ -65,6 +85,35 @@ export default async function DashboardPage() {
         titulo={`${saudacao()} 👋`}
         descricao={formatarDataExtenso(new Date())}
       />
+
+      {/* WIDGET: COBRAR HOJE (destaque se houver pendências) */}
+      {totalCobrancasHoje > 0 && (
+        <Card className="mb-8 border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
+          <CardContent className="flex flex-col items-start justify-between gap-4 pt-6 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-4">
+              <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10">
+                <BellRing className="size-6 text-primary" />
+              </div>
+              <div>
+                <p className="font-semibold">
+                  {totalCobrancasHoje} cobrança(s) para fazer hoje
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {atrasadas.length > 0 && `${atrasadas.length} atrasada(s)`}
+                  {atrasadas.length > 0 && vencemHoje.length > 0 && " • "}
+                  {vencemHoje.length > 0 && `${vencemHoje.length} vencendo hoje`}
+                </p>
+              </div>
+            </div>
+            <Button asChild className="shrink-0">
+              <Link href="/cobrancas">
+                Ir para Cobranças
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* ATALHOS RÁPIDOS */}
       <div className="mb-8">

@@ -14,6 +14,7 @@ import {
   Recycle,
   FileBarChart,
   Upload,
+  BellRing,
   type LucideIcon,
 } from "lucide-react";
 
@@ -147,6 +148,7 @@ export const ITENS_MENU: ItemMenu[] = [
   { titulo: "Caixa", href: "/caixa", icone: Wallet },
   { titulo: "Importar", href: "/importar", icone: Upload },
   { titulo: "Empréstimos", href: "/emprestimos", icone: HandCoins },
+  { titulo: "Cobranças", href: "/cobrancas", icone: BellRing },
   { titulo: "Clientes", href: "/clientes", icone: Users },
   { titulo: "Adega", href: "/adega", icone: Wine },
   { titulo: "Sucatas", href: "/sucatas", icone: Recycle },

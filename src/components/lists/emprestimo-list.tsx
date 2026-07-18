@@ -1,33 +1,30 @@
 "use client";
 
 // ============================================================================
-// LISTA DE EMPRÉSTIMOS — com detalhes expansíveis e receber parcela
+// LISTA DE EMPRÉSTIMOS — com detalhes expansíveis
 // ============================================================================
-// Melhorias (Etapa 6):
-// - Empty state amigável
-// - Confirmação elegante ao receber parcela
-// - Progresso visual (barra de parcelas pagas)
-// - Badges semânticos (verde pago, amarelo pendente, vermelho atrasado)
-// - Resumo no topo de cada empréstimo
+// Cada parcela tem 3 botões (no lugar do antigo "Receber"):
+//   - WhatsApp (abre conversa com mensagem pronta)
+//   - Pagamento (modal que suporta parcial/total)
+//   - Histórico (timeline de cobranças já feitas)
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { useState } from "react";
 import {
   ChevronDown,
   ChevronRight,
-  Loader2,
   CheckCircle2,
   Clock,
   AlertTriangle,
+  History,
 } from "lucide-react";
 
-import { receberParcela } from "@/app/actions/emprestimos";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
-import { useConfirm } from "@/components/confirm-dialog";
 import { formatarMoeda, formatarData } from "@/lib/constants";
 import { statusParcelaVencida } from "@/lib/finance/calculadora";
+import { BotaoWhatsApp } from "@/components/cobranca/botao-whatsapp";
+import { DialogPagamento } from "@/components/cobranca/dialog-pagamento";
+import { DialogHistorico } from "@/components/cobranca/dialog-historico";
 import type {
   EmprestimoComCliente,
   Parcela,
@@ -114,7 +111,12 @@ export function EmprestimoList({
             {/* Detalhes (parcelas) */}
             {aberto && (
               <div className="border-t bg-muted/20 p-4">
-                <ParcelaList parcelas={parcelas} />
+                <ParcelaList
+                  parcelas={parcelas}
+                  totalParcelas={emp.num_parcelas}
+                  nomeCliente={emp.clientes?.nome || "—"}
+                  telefoneCliente={emp.clientes?.telefone || null}
+                />
               </div>
             )}
           </li>
@@ -141,36 +143,21 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 // --------------------------------------------------------------------------
-// LISTA DE PARCELAS — com confirmação ao receber
+// LISTA DE PARCELAS — com botões WhatsApp, Pagamento (parcial) e Histórico
 // --------------------------------------------------------------------------
-function ParcelaList({ parcelas }: { parcelas: Parcela[] }) {
-  const [pendente, startTransition] = useTransition();
-  const router = useRouter();
-  const confirmar = useConfirm();
-
-  async function handleReceber(parcela: Parcela) {
-    const ok = await confirmar({
-      titulo: "Confirmar recebimento?",
-      descricao: `Parcela ${parcela.numero} — ${formatarMoeda(
-        parcela.valor,
-      )}. Uma entrada de mesmo valor será criada no caixa.`,
-      textoConfirmar: "Confirmar recebimento",
-    });
-
-    if (!ok) return;
-
-    startTransition(async () => {
-      const r = await receberParcela(parcela.id);
-      if (r.error) {
-        toast.error(r.error);
-      } else {
-        toast.success("Recebimento registrado! 🎉", {
-          description: "Entrada adicionada ao caixa.",
-        });
-        router.refresh();
-      }
-    });
-  }
+function ParcelaList({
+  parcelas,
+  totalParcelas,
+  nomeCliente,
+  telefoneCliente,
+}: {
+  parcelas: Parcela[];
+  totalParcelas: number;
+  nomeCliente: string;
+  telefoneCliente: string | null;
+}) {
+  const [pagamento, setPagamento] = useState<Parcela | null>(null);
+  const [historico, setHistorico] = useState<Parcela | null>(null);
 
   if (parcelas.length === 0) {
     return (
@@ -179,70 +166,132 @@ function ParcelaList({ parcelas }: { parcelas: Parcela[] }) {
   }
 
   return (
-    <ul className="space-y-2">
-      {parcelas.map((p) => {
-        const status = statusParcelaVencida(p);
-        return (
-          <li
-            key={p.id}
-            className="flex items-center justify-between rounded-md bg-background p-3"
-          >
-            <div className="flex items-center gap-3">
-              {status === "paga" ? (
-                <CheckCircle2 className="size-5 text-emerald-600" />
-              ) : status === "atrasada" ? (
-                <AlertTriangle className="size-5 text-rose-600" />
-              ) : (
-                <Clock className="size-5 text-amber-600" />
-              )}
-              <div>
-                <p className="text-sm font-medium">Parcela {p.numero}</p>
-                <p className="text-xs text-muted-foreground">
-                  Vence {formatarData(p.vencimento)}
-                  {p.data_pagamento &&
-                    ` • Paga em ${formatarData(p.data_pagamento)}`}
-                </p>
+    <>
+      <ul className="space-y-2">
+        {parcelas.map((p) => {
+          const status = statusParcelaVencida(p);
+          const parcial = p.status === "parcial";
+          return (
+            <li
+              key={p.id}
+              className="flex items-center justify-between rounded-md bg-background p-3"
+            >
+              <div className="flex min-w-0 items-center gap-3">
+                {status === "paga" ? (
+                  <CheckCircle2 className="size-5 shrink-0 text-emerald-600" />
+                ) : status === "atrasada" ? (
+                  <AlertTriangle className="size-5 shrink-0 text-rose-600" />
+                ) : (
+                  <Clock className="size-5 shrink-0 text-amber-600" />
+                )}
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">Parcela {p.numero}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    Vence {formatarData(p.vencimento)}
+                    {p.data_pagamento &&
+                      ` • Paga em ${formatarData(p.data_pagamento)}`}
+                    {p.ultima_cobranca &&
+                      ` • cobrada ${new Date(
+                        p.ultima_cobranca,
+                      ).toLocaleDateString("pt-BR")}`}
+                  </p>
+                </div>
               </div>
-            </div>
 
-            <div className="flex items-center gap-2">
-              <span className="num-moeda font-semibold">
-                {formatarMoeda(p.valor)}
-              </span>
-              {status === "paga" ? (
-                <span className="badge-success">Paga</span>
-              ) : status === "atrasada" ? (
-                <>
-                  <span className="badge-danger">Atrasada</span>
-                  <Button
-                    size="sm"
-                    onClick={() => handleReceber(p)}
-                    disabled={pendente}
-                  >
-                    {pendente ? (
-                      <Loader2 className="size-3 animate-spin" />
+              <div className="flex shrink-0 items-center gap-2">
+                <div className="text-right">
+                  <div className="num-moeda font-semibold">
+                    {formatarMoeda(p.valor)}
+                  </div>
+                  {parcial && Number(p.valor_pago) > 0 && (
+                    <div className="num-moeda text-xs text-emerald-600">
+                      pago {formatarMoeda(Number(p.valor_pago))}
+                    </div>
+                  )}
+                </div>
+                {status === "paga" ? (
+                  <span className="badge-success">Paga</span>
+                ) : (
+                  <div className="flex items-center gap-1">
+                    {/* Badge de status */}
+                    {status === "atrasada" ? (
+                      <span className="badge-danger">Atrasada</span>
+                    ) : parcial ? (
+                      <span className="badge-warning">Parcial</span>
                     ) : (
-                      "Receber"
+                      <span className="badge-warning">Pendente</span>
                     )}
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <span className="badge-warning">Pendente</span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleReceber(p)}
-                    disabled={pendente}
-                  >
-                    Receber
-                  </Button>
-                </>
-              )}
-            </div>
-          </li>
-        );
-      })}
-    </ul>
+
+                    {/* Botão WhatsApp */}
+                    <BotaoWhatsApp
+                      parcelaId={p.id}
+                      nomeCliente={nomeCliente}
+                      telefone={telefoneCliente}
+                      numeroParcela={p.numero}
+                      totalParcelas={totalParcelas}
+                      valor={p.valor}
+                      valorPago={Number(p.valor_pago) || 0}
+                      vencimento={p.vencimento}
+                      status={
+                        parcial
+                          ? "parcial"
+                          : status === "atrasada"
+                            ? "atrasada"
+                            : "pendente"
+                      }
+                      ultimaCobranca={p.ultima_cobranca}
+                      size="sm"
+                    />
+
+                    {/* Botão Pagamento */}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setPagamento(p)}
+                      aria-label="Registrar pagamento"
+                    >
+                      <CheckCircle2 className="size-4 text-emerald-600" />
+                    </Button>
+
+                    {/* Botão Histórico */}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setHistorico(p)}
+                      aria-label="Histórico de cobranças"
+                    >
+                      <History className="size-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+
+      {/* Modais */}
+      {pagamento && (
+        <DialogPagamento
+          aberto={true}
+          onFechar={() => setPagamento(null)}
+          parcelaId={pagamento.id}
+          numero={pagamento.numero}
+          valorTotal={pagamento.valor}
+          valorJaPago={Number(pagamento.valor_pago) || 0}
+          nomeCliente={nomeCliente}
+        />
+      )}
+
+      {historico && (
+        <DialogHistorico
+          aberto={true}
+          onFechar={() => setHistorico(null)}
+          parcelaId={historico.id}
+          numero={historico.numero}
+          nomeCliente={nomeCliente}
+        />
+      )}
+    </>
   );
 }

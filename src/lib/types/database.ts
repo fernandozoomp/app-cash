@@ -10,8 +10,9 @@ export type TipoTransacao = "entrada" | "saida";
 export type FormaPagamento = "pix" | "dinheiro" | "cartao" | "fiado";
 export type SistemaJuros = "price" | "simples";
 export type StatusEmprestimo = "ativo" | "quitado" | "atrasado";
-export type StatusParcela = "pendente" | "paga" | "atrasada";
+export type StatusParcela = "pendente" | "paga" | "atrasada" | "parcial";
 export type TipoSucata = "compra" | "venda";
+export type CanalCobranca = "whatsapp" | "presencial" | "telefone" | "outros";
 
 export interface Transacao {
   id: string;
@@ -62,8 +63,23 @@ export interface Parcela {
   vencimento: string;
   status: StatusParcela;
   data_pagamento: string | null;
+  // Campos de cobrança (adicionados pela migration)
+  valor_pago?: number; // quanto já foi pago (parcial)
+  ultima_cobranca?: string | null; // data do último lembrete
+  cobrancas_count?: number; // quantas vezes cobramos
   created_at: string;
   updated_at: string;
+}
+
+// Nova tabela: histórico de cobranças
+export interface Cobranca {
+  id: string;
+  user_id: string;
+  parcela_id: string;
+  data: string;
+  canal: CanalCobranca;
+  mensagem: string | null;
+  created_at: string;
 }
 
 export interface ProdutoAdega {
