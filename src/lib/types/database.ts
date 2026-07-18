@@ -135,6 +135,48 @@ export interface EventoAgenda {
   updated_at: string;
 }
 
+// Contas bancárias
+export type BancoCodigo =
+  | "itau"
+  | "nubank"
+  | "bradesco"
+  | "bb"
+  | "inter"
+  | "santander"
+  | "caixa"
+  | "outros";
+
+export interface ContaBancaria {
+  id: string;
+  user_id: string;
+  nome: string;
+  banco: BancoCodigo;
+  agencia: string | null;
+  conta: string | null;
+  saldo_inicial: number;
+  cor: string;
+  ativa: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Itens de extrato importado (para conciliação)
+export type OrigemExtrato = "ofx" | "csv" | "json" | "manual";
+
+export interface ExtratoItem {
+  id: string;
+  user_id: string;
+  conta_id: string;
+  data: string;
+  descricao: string | null;
+  valor: number; // + entrada, - saída
+  conciliado: boolean;
+  transacao_id: string | null;
+  origem: OrigemExtrato;
+  hash_unico: string;
+  created_at: string;
+}
+
 export interface TemplateMensagem {
   id: string;
   user_id: string | null; // null = template global do sistema
