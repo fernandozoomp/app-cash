@@ -1,13 +1,13 @@
 // ============================================================================
-// DASHBOARD — TELA INICIAL COM DADOS REAIS
+// DASHBOARD — TELA INICIAL REFATORADA (visual fintech)
 // ============================================================================
-// Melhorias aplicadas (Etapa 4):
-// - Saudação personalizada por horário (Bom dia/Boa tarde/Boa noite)
-// - Hierarquia visual: card principal de saldo em destaque
-// - Empty state amigável quando não há dados
-// - Animações sutis de entrada
-// - Indicadores de tendência (setas coloridas)
-// - Lista de vencimentos com cores semânticas
+// Novo layout em seções:
+//   1. Saudação + data
+//   2. Atalhos rápidos (4 botões grandes)
+//   3. Saldo principal (card hero) + 3 mini cards
+//   4. Gráfico de linha (saldo 30 dias)
+//   5. Pizza (distribuição) + Barras (mês a mês)
+//   6. Próximos vencimentos
 
 import Link from "next/link";
 import {
@@ -28,16 +28,15 @@ import {
   CalendarClock,
   AlertTriangle,
   ArrowRight,
-  Sparkles,
 } from "lucide-react";
-import {
-  formatarMoeda,
-  formatarData,
-  EMPREENDIMENTOS,
-} from "@/lib/constants";
+import { formatarMoeda, formatarDataExtenso } from "@/lib/constants";
 import { obterResumoCaixa } from "@/app/actions/caixa";
 import { proximosVencimentos } from "@/app/actions/emprestimos";
 import { statusParcelaVencida } from "@/lib/finance/calculadora";
+import { AtalhosRapidos } from "@/components/charts/atalhos-rapidos";
+import { SaldoLinha } from "@/components/charts/saldo-linha";
+import { DistribuicaoPizza } from "@/components/charts/distribuicao-pizza";
+import { ComparativoBarras } from "@/components/charts/comparativo-barras";
 
 // Saudação inteligente baseada no horário local.
 function saudacao(): string {
@@ -61,113 +60,136 @@ export default async function DashboardPage() {
 
   return (
     <>
+      {/* SAUDAÇÃO + DATA */}
       <PageHeader
         titulo={`${saudacao()} 👋`}
-        descricao="Veja como estão seus negócios hoje."
+        descricao={formatarDataExtenso(new Date())}
       />
 
-      {/* ===== CARD PRINCIPAL: SALDO ATUAL ===== */}
-      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <Wallet className="size-4" />
-                Saldo total
-              </p>
-              <p
-                className={`mt-1 text-4xl font-bold tracking-tight num-moeda ${
-                  resumo.saldo >= 0 ? "text-emerald-600" : "text-rose-600"
-                }`}
-              >
-                {formatarMoeda(resumo.saldo)}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Entradas − Saídas de todos os empreendimentos
-              </p>
-            </div>
-            <div className="hidden size-20 items-center justify-center rounded-2xl bg-primary/10 sm:flex">
-              <Wallet className="size-10 text-primary" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* ===== 3 CARDS SECUNDÁRIOS ===== */}
-      <div className="mt-4 grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">Entradas do mês</p>
-              <TrendingUp className="size-4 text-blue-600" />
-            </div>
-            <p className="mt-1 text-2xl font-bold text-blue-600 num-moeda">
-              {formatarMoeda(resumo.entradasMes)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">Saídas do mês</p>
-              <TrendingDown className="size-4 text-rose-600" />
-            </div>
-            <p className="mt-1 text-2xl font-bold text-rose-600 num-moeda">
-              {formatarMoeda(resumo.saidasMes)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">A receber</p>
-              <HandCoins className="size-4 text-amber-600" />
-            </div>
-            <p className="mt-1 text-2xl font-bold text-amber-600 num-moeda">
-              {formatarMoeda(resumo.aReceber)}
-            </p>
-          </CardContent>
-        </Card>
+      {/* ATALHOS RÁPIDOS */}
+      <div className="mb-8">
+        <AtalhosRapidos />
       </div>
 
-      {/* ===== SALDO POR EMPREENDIMENTO ===== */}
-      <div className="mt-6">
-        <h2 className="mb-3 text-sm font-medium text-muted-foreground">
-          Por empreendimento
-        </h2>
-        <div className="grid gap-4 sm:grid-cols-3">
-          {(
-            Object.keys(EMPREENDIMENTOS) as Array<
-              keyof typeof EMPREENDIMENTOS
-            >
-          ).map((emp) => {
-            const valor = resumo.porEmpreendimento[emp];
-            return (
-              <Card key={emp} className="overflow-hidden">
-                <CardContent className="pt-6">
-                  <p className="text-sm text-muted-foreground">
-                    {EMPREENDIMENTOS[emp].label}
-                  </p>
-                  <p
-                    className={`mt-1 text-xl font-bold num-moeda ${
-                      valor >= 0
-                        ? EMPREENDIMENTOS[emp].cor
-                        : "text-rose-600"
-                    }`}
-                  >
-                    {formatarMoeda(valor)}
-                  </p>
-                </CardContent>
-              </Card>
-            );
-          })}
+      {/* SALDO PRINCIPAL + MINI CARDS */}
+      <div className="mb-8 grid gap-4 lg:grid-cols-3">
+        {/* Card principal: saldo (ocupa 2 colunas no desktop) */}
+        <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent lg:col-span-2">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Wallet className="size-4" />
+                  Saldo total
+                </p>
+                <p
+                  className={`num-moeda mt-2 text-4xl font-bold tracking-tight ${
+                    resumo.saldo >= 0 ? "text-emerald-600" : "text-rose-600"
+                  }`}
+                >
+                  {formatarMoeda(resumo.saldo)}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Entradas − Saídas de todos os empreendimentos
+                </p>
+              </div>
+              <div className="hidden size-20 items-center justify-center rounded-2xl bg-primary/10 sm:flex">
+                <Wallet className="size-10 text-primary" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 3 mini cards empilhados */}
+        <div className="grid gap-4">
+          <Card>
+            <CardContent className="flex items-center justify-between py-4">
+              <div>
+                <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <TrendingUp className="size-3.5 text-blue-600" />
+                  Entradas (mês)
+                </p>
+                <p className="num-moeda mt-0.5 text-lg font-bold text-blue-600">
+                  {formatarMoeda(resumo.entradasMes)}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center justify-between py-4">
+              <div>
+                <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <TrendingDown className="size-3.5 text-rose-600" />
+                  Saídas (mês)
+                </p>
+                <p className="num-moeda mt-0.5 text-lg font-bold text-rose-600">
+                  {formatarMoeda(resumo.saidasMes)}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center justify-between py-4">
+              <div>
+                <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <HandCoins className="size-3.5 text-amber-600" />
+                  A receber
+                </p>
+                <p className="num-moeda mt-0.5 text-lg font-bold text-amber-600">
+                  {formatarMoeda(resumo.aReceber)}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
-      {/* ===== PRÓXIMOS VENCIMENTOS ===== */}
-      <Card className="mt-6">
+      {/* GRÁFICO DE LINHA: SALDO 30 DIAS */}
+      <Card className="mb-8">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold">
+            Evolução do saldo
+          </CardTitle>
+          <CardDescription>Últimos 30 dias</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <SaldoLinha dados={resumo.saldoPorDia} />
+        </CardContent>
+      </Card>
+
+      {/* PIZZA + BARRAS (lado a lado no desktop) */}
+      <div className="mb-8 grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold">
+              Distribuição por empreendimento
+            </CardTitle>
+            <CardDescription>
+              Movimentação total de cada negócio
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <DistribuicaoPizza dados={resumo.distribuicao} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold">
+              Entradas x Saídas
+            </CardTitle>
+            <CardDescription>Comparativo dos últimos 6 meses</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ComparativoBarras dados={resumo.comparativoMensal} />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* PRÓXIMOS VENCIMENTOS */}
+      <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
+          <CardTitle className="flex items-center gap-2 text-base font-semibold">
             <CalendarClock className="size-5 text-amber-600" />
             Vencimentos dos próximos 7 dias
           </CardTitle>
@@ -196,11 +218,12 @@ export default async function DashboardPage() {
                     <div className="min-w-0 flex-1">
                       <p className="font-medium">{nome}</p>
                       <p className="text-xs text-muted-foreground">
-                        Parcela {p.numero} • Vence {formatarData(p.vencimento)}
+                        Parcela {p.numero} • Vence{" "}
+                        {new Date(p.vencimento).toLocaleDateString("pt-BR")}
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="font-semibold num-moeda">
+                      <span className="num-moeda font-semibold">
                         {formatarMoeda(p.valor)}
                       </span>
                       {status === "atrasada" ? (
@@ -228,27 +251,14 @@ export default async function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* ===== EMPTY STATE: PRIMEIRO USO ===== */}
+      {/* EMPTY STATE: PRIMEIRO USO */}
       {!temDados && (
-        <Card className="mt-6 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+        <Card className="mt-8 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
           <CardContent className="pt-6">
             <EmptyState
               titulo="Bem-vindo ao seu novo controle financeiro!"
               descricao="Comece registrando sua primeira venda, despesa ou criando um empréstimo. Em poucos cliques seu dashboard ganha vida."
               icone="wallet"
-              acao={
-                <div className="flex flex-wrap justify-center gap-2">
-                  <Button asChild>
-                    <Link href="/caixa">
-                      <Sparkles className="size-4" />
-                      Registrar primeira movimentação
-                    </Link>
-                  </Button>
-                  <Button asChild variant="outline">
-                    <Link href="/emprestimos">Criar empréstimo</Link>
-                  </Button>
-                </div>
-              }
             />
           </CardContent>
         </Card>

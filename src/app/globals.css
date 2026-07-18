@@ -7,7 +7,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -75,7 +75,7 @@
   --chart-3: oklch(0.55 0.18 240);
   --chart-4: oklch(0.65 0.2 15);
   --chart-5: oklch(0.6 0.2 300);
-  --radius: 0.625rem;
+  --radius: 1rem;
   /* Sidebar em verde-escuro elegante */
   --sidebar: oklch(0.22 0.03 152);
   --sidebar-foreground: oklch(0.95 0.01 145);
@@ -127,12 +127,12 @@
   --font-size-fluid-2xl:  clamp(1.75rem, 1.45rem + 1.4vw, 2.5rem);
 
   /* Sombras em camadas (layered shadows) — mais elegantes que sombra única.
-     Inspiradas em Material Design 3, mas mais sutis. */
-  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.04);
-  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.08);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.10), 0 8px 10px -6px rgb(0 0 0 / 0.08);
+     Padrão fintech: sombras quase imperceptíveis, focadas em profundidade sutil. */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.04), 0 1px 3px 0 rgb(0 0 0 / 0.03);
+  --shadow-md: 0 2px 4px -2px rgb(0 0 0 / 0.04), 0 4px 8px -4px rgb(0 0 0 / 0.04);
+  --shadow-lg: 0 4px 8px -4px rgb(0 0 0 / 0.05), 0 12px 24px -8px rgb(0 0 0 / 0.06);
+  --shadow-xl: 0 8px 16px -6px rgb(0 0 0 / 0.06), 0 24px 48px -12px rgb(0 0 0 / 0.08);
 
   /* Animações — durações e curvas naturais (easing suave). */
   --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);

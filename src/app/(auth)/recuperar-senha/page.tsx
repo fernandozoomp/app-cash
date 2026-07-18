@@ -1,14 +1,13 @@
 "use client";
 
 // ============================================================================
-// TELA: RECUPERAR SENHA (esqueci minha senha)
+// TELA: RECUPERAR SENHA — visual moderno (fintech)
 // ============================================================================
-// Pede o e-mail e envia um link de redefinição.
 
 import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Loader2, MailCheck } from "lucide-react";
+import { Loader2, MailCheck, ArrowRight } from "lucide-react";
 
 import { recuperarSenha } from "@/app/actions/auth";
 import {
@@ -36,7 +35,6 @@ export default function RecuperarSenhaPage() {
     setCarregando(false);
 
     // Por segurança, mostramos a mesma mensagem independente do resultado
-    // (não revelar se o e-mail existe ou não).
     if (resultado?.sucesso || resultado?.error) {
       toast.success("Se o e-mail existir, o link foi enviado.", {
         description: "Confira sua caixa de entrada e o spam.",
@@ -47,12 +45,12 @@ export default function RecuperarSenhaPage() {
 
   if (enviado) {
     return (
-      <Card className="shadow-xl shadow-primary/5">
-        <CardContent className="flex flex-col items-center gap-4 pt-8 text-center">
-          <div className="flex size-16 items-center justify-center rounded-full bg-verde-100">
+      <Card className="border-muted/60 shadow-lg shadow-primary/5">
+        <CardContent className="flex flex-col items-center gap-5 pt-10 text-center">
+          <div className="flex size-16 items-center justify-center rounded-2xl bg-verde-100">
             <MailCheck className="size-8 text-primary" />
           </div>
-          <div className="space-y-1">
+          <div className="space-y-2">
             <h2 className="text-xl font-semibold">Cheque seu e-mail</h2>
             <p className="max-w-sm text-sm text-muted-foreground">
               Enviamos um link de recuperação para{" "}
@@ -60,7 +58,7 @@ export default function RecuperarSenhaPage() {
               expira em 1 hora.
             </p>
           </div>
-          <Button asChild variant="outline" className="mt-2">
+          <Button asChild variant="outline" className="mt-2 h-11">
             <Link href="/login">Voltar para o login</Link>
           </Button>
         </CardContent>
@@ -69,9 +67,11 @@ export default function RecuperarSenhaPage() {
   }
 
   return (
-    <Card className="shadow-xl shadow-primary/5">
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl">Esqueci minha senha</CardTitle>
+    <Card className="border-muted/60 shadow-lg shadow-primary/5">
+      <CardHeader className="space-y-1 pb-6">
+        <CardTitle className="text-2xl font-semibold tracking-tight">
+          Esqueci minha senha
+        </CardTitle>
         <p className="text-sm text-muted-foreground">
           Sem problema. Informe seu e-mail e enviamos um link para você criar
           uma senha nova.
@@ -80,7 +80,9 @@ export default function RecuperarSenhaPage() {
       <form onSubmit={handleSubmit}>
         <CardContent>
           <div className="space-y-2">
-            <Label htmlFor="email">E-mail</Label>
+            <Label htmlFor="email" className="text-sm font-medium">
+              E-mail
+            </Label>
             <Input
               id="email"
               type="email"
@@ -91,18 +93,26 @@ export default function RecuperarSenhaPage() {
               autoComplete="email"
               autoFocus
               disabled={carregando}
+              className="h-12"
             />
           </div>
         </CardContent>
-        <CardFooter className="mt-6 flex flex-col gap-3">
-          <Button type="submit" className="w-full" disabled={carregando}>
+        <CardFooter className="mt-6 flex flex-col gap-4">
+          <Button
+            type="submit"
+            className="h-12 w-full text-base font-medium"
+            disabled={carregando}
+          >
             {carregando ? (
               <>
-                <Loader2 className="size-4 animate-spin" />
+                <Loader2 className="size-5 animate-spin" />
                 Enviando...
               </>
             ) : (
-              "Enviar link de recuperação"
+              <>
+                Enviar link
+                <ArrowRight className="size-4" />
+              </>
             )}
           </Button>
           <p className="text-center text-sm text-muted-foreground">

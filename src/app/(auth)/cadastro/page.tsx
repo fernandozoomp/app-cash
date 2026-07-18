@@ -1,18 +1,13 @@
 "use client";
 
 // ============================================================================
-// TELA DE CADASTRO
+// TELA DE CADASTRO — visual moderno (fintech)
 // ============================================================================
-// Melhorias UX aplicadas:
-// - Medidor de força de senha (feedback em tempo real)
-// - Confirmação de senha com indicação visual
-// - Textos humanizados (content-humanizer)
-// - Dica sobre confirmação por e-mail
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Loader2, Eye, EyeOff, Check, X } from "lucide-react";
+import { Loader2, Eye, EyeOff, Check, X, ArrowRight } from "lucide-react";
 
 import { cadastrar } from "@/app/actions/auth";
 import {
@@ -26,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-// Calcula força da senha de 0 a 4. Simples mas eficaz.
+// Calcula força da senha de 0 a 4.
 function forcaSenha(senha: string): {
   nivel: 0 | 1 | 2 | 3 | 4;
   cor: string;
@@ -61,8 +56,7 @@ export default function CadastroPage() {
 
   const forca = useMemo(() => forcaSenha(senha), [senha]);
   const senhasIguais = senha.length > 0 && senha === confirmar;
-  const senhasDiferentes =
-    confirmar.length > 0 && senha !== confirmar;
+  const senhasDiferentes = confirmar.length > 0 && senha !== confirmar;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -95,17 +89,21 @@ export default function CadastroPage() {
   }
 
   return (
-    <Card className="shadow-xl shadow-primary/5">
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl">Criar minha conta</CardTitle>
+    <Card className="border-muted/60 shadow-lg shadow-primary/5">
+      <CardHeader className="space-y-1 pb-6">
+        <CardTitle className="text-2xl font-semibold tracking-tight">
+          Criar minha conta
+        </CardTitle>
         <p className="text-sm text-muted-foreground">
           Leva menos de um minuto. É grátis.
         </p>
       </CardHeader>
       <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="email">E-mail</Label>
+            <Label htmlFor="email" className="text-sm font-medium">
+              E-mail
+            </Label>
             <Input
               id="email"
               type="email"
@@ -116,11 +114,14 @@ export default function CadastroPage() {
               autoComplete="email"
               autoFocus
               disabled={carregando}
+              className="h-12"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="senha">Senha</Label>
+            <Label htmlFor="senha" className="text-sm font-medium">
+              Senha
+            </Label>
             <div className="relative">
               <Input
                 id="senha"
@@ -131,26 +132,26 @@ export default function CadastroPage() {
                 required
                 autoComplete="new-password"
                 disabled={carregando}
-                className="pr-10"
+                className="h-12 pr-12"
               />
               <button
                 type="button"
                 onClick={() => setMostrarSenha((m) => !m)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
                 aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
                 tabIndex={-1}
               >
                 {mostrarSenha ? (
-                  <EyeOff className="size-4" />
+                  <EyeOff className="size-5" />
                 ) : (
-                  <Eye className="size-4" />
+                  <Eye className="size-5" />
                 )}
               </button>
             </div>
             {/* Barra de força da senha */}
             {senha.length > 0 && (
-              <div className="space-y-1.5">
-                <div className="flex gap-1">
+              <div className="space-y-1.5 pt-1">
+                <div className="flex gap-1.5">
                   {[1, 2, 3, 4].map((i) => (
                     <div
                       key={i}
@@ -170,7 +171,9 @@ export default function CadastroPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirmar">Confirmar senha</Label>
+            <Label htmlFor="confirmar" className="text-sm font-medium">
+              Confirmar senha
+            </Label>
             <div className="relative">
               <Input
                 id="confirmar"
@@ -181,7 +184,7 @@ export default function CadastroPage() {
                 required
                 autoComplete="new-password"
                 disabled={carregando}
-                className={`pr-10 ${
+                className={`h-12 pr-12 ${
                   senhasDiferentes
                     ? "border-rose-500 focus-visible:ring-rose-500"
                     : senhasIguais
@@ -191,9 +194,9 @@ export default function CadastroPage() {
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2">
                 {senhasIguais ? (
-                  <Check className="size-4 text-emerald-500" />
+                  <Check className="size-5 text-emerald-500" />
                 ) : senhasDiferentes ? (
-                  <X className="size-4 text-rose-500" />
+                  <X className="size-5 text-rose-500" />
                 ) : null}
               </div>
             </div>
@@ -202,24 +205,27 @@ export default function CadastroPage() {
             )}
           </div>
 
-          <p className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+          <p className="rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
             📧 Vamos enviar um e-mail de confirmação. Olhe também no spam,
             pode cair lá na primeira vez.
           </p>
         </CardContent>
-        <CardFooter className="mt-6 flex flex-col gap-3">
+        <CardFooter className="mt-6 flex flex-col gap-4">
           <Button
             type="submit"
-            className="w-full"
+            className="h-12 w-full text-base font-medium"
             disabled={carregando || !senhasIguais}
           >
             {carregando ? (
               <>
-                <Loader2 className="size-4 animate-spin" />
+                <Loader2 className="size-5 animate-spin" />
                 Criando conta...
               </>
             ) : (
-              "Criar minha conta"
+              <>
+                Criar minha conta
+                <ArrowRight className="size-4" />
+              </>
             )}
           </Button>
           <p className="text-center text-sm text-muted-foreground">

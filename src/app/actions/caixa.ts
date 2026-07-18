@@ -135,6 +135,9 @@ export async function obterResumoCaixa() {
       saidasMes: 0,
       aReceber: 0,
       porEmpreendimento: { adega: 0, emprestimos: 0, sucatas: 0 },
+      saldoPorDia: [],
+      distribuicao: [],
+      comparativoMensal: [],
     };
   }
 
@@ -157,6 +160,30 @@ export async function obterResumoCaixa() {
   let saidasMes = 0;
   const porEmpreendimento = { adega: 0, emprestimos: 0, sucatas: 0 };
 
+  // Para gráfico de LINHA (saldo por dia, últimos 30 dias)
+  // e para gráfico de BARRAS (comparativo mensal, últimos 6 meses)
+  const mapaDiario: Record<string, number> = {};
+  const mapaMensal: Record<
+    string,
+    { entradas: number; saidas: number }
+  > = {};
+
+  // Pré-popula os últimos 30 dias (mesmo dias sem transação) para o gráfico
+  const hoje30 = new Date();
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(hoje30);
+    d.setDate(d.getDate() - i);
+    const chave = d.toISOString().slice(0, 10);
+    mapaDiario[chave] = 0;
+  }
+
+  // Pré-popula os últimos 6 meses para o comparativo
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(hoje30.getFullYear(), hoje30.getMonth() - i, 1);
+    const chave = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    mapaMensal[chave] = { entradas: 0, saidas: 0 };
+  }
+
   for (const t of todas || []) {
     const valor = Number(t.valor);
     const sinal = t.tipo === "entrada" ? 1 : -1;
@@ -173,7 +200,74 @@ export async function obterResumoCaixa() {
       porEmpreendimento.emprestimos += valor * sinal;
     if (t.empreendimento === "sucatas")
       porEmpreendimento.sucatas += valor * sinal;
+
+    // Acumula por dia (para gráfico de linha)
+    if (mapaDiario[t.data] !== undefined) {
+      mapaDiario[t.data] += valor * sinal;
+    }
+
+    // Acumula por mês (para gráfico de barras)
+    const mesChave = t.data.slice(0, 7); // YYYY-MM
+    if (mapaMensal[mesChave]) {
+      if (t.tipo === "entrada") mapaMensal[mesChave].entradas += valor;
+      else mapaMensal[mesChave].saidas += valor;
+    }
   }
+
+  // Constrói arrays para os gráficos
+  // 1) Saldo acumulado por dia (linha)
+  let saldoAcumulado = 0;
+  // Para o gráfico mostrar o saldo EVOLUINDO até o atual, subtraímos o que
+  // veio nos últimos 30 dias do saldo total atual.
+  const total30Dias = Object.values(mapaDiario).reduce((a, b) => a + b, 0);
+  saldoAcumulado = saldo - total30Dias;
+
+  const saldoPorDia = Object.entries(mapaDiario).map(([data, variacao]) => {
+    saldoAcumulado += variacao;
+    return {
+      data,
+      saldo: Math.round(saldoAcumulado * 100) / 100,
+    };
+  });
+
+  // 2) Distribuição por empreendimento (para pizza) — usa valor absoluto
+  const distribuicao = [
+    { nome: "Adega", valor: Math.abs(porEmpreendimento.adega), chave: "adega" },
+    {
+      nome: "Empréstimos",
+      valor: Math.abs(porEmpreendimento.emprestimos),
+      chave: "emprestimos",
+    },
+    {
+      nome: "Sucatas",
+      valor: Math.abs(porEmpreendimento.sucatas),
+      chave: "sucatas",
+    },
+  ];
+
+  // 3) Comparativo mensal (para barras)
+  const nomesMeses = [
+    "Jan",
+    "Fev",
+    "Mar",
+    "Abr",
+    "Mai",
+    "Jun",
+    "Jul",
+    "Ago",
+    "Set",
+    "Out",
+    "Nov",
+    "Dez",
+  ];
+  const comparativoMensal = Object.entries(mapaMensal).map(([chave, v]) => {
+    const mes = parseInt(chave.slice(5, 7)) - 1;
+    return {
+      mes: nomesMeses[mes] || chave,
+      entradas: Math.round(v.entradas * 100) / 100,
+      saidas: Math.round(v.saidas * 100) / 100,
+    };
+  });
 
   // Total a receber (parcelas pendentes + atrasadas)
   const { data: parcelasPendentes } = await supabase
@@ -197,5 +291,8 @@ export async function obterResumoCaixa() {
       emprestimos: Math.round(porEmpreendimento.emprestimos * 100) / 100,
       sucatas: Math.round(porEmpreendimento.sucatas * 100) / 100,
     },
+    saldoPorDia,
+    distribuicao,
+    comparativoMensal,
   };
 }
