@@ -38,12 +38,16 @@ export async function listarEventosMes(ano: number, mes: number) {
 
   if (!user) return { data: [] as EventoCalendario[] };
 
-  // Intervalo do mês (1º a último dia)
+  // Intervalo do mês VISÍVEL no calendário (1º a último dia)
   const inicio = new Date(ano, mes, 1).toISOString().slice(0, 10);
   const fim = new Date(ano, mes + 1, 0).toISOString().slice(0, 10);
 
-  // Busca paralela: eventos manuais + vencimentos de parcelas
-  const [eventosManuais, parcelas] = await Promise.all([
+  // Para os eventos MANUAIS: só os do mês visível
+  // Para os VENCIMENTOS de parcelas: pegamos TODAS as pendentes/atrasadas/parciais
+  //   (porque uma parcela atrasada em junho precisa aparecer quando você está
+  //   vendo junho — mesmo que já estamos em julho). Depois filtramos no código
+  //   quais caem dentro do mês visível.
+  const [eventosManuais, parcelasTodas] = await Promise.all([
     supabase
       .from("eventos_agenda")
       .select("*")
@@ -57,10 +61,13 @@ export async function listarEventosMes(ano: number, mes: number) {
         "id, numero, valor, valor_pago, vencimento, status, emprestimos!inner(user_id, num_parcelas, clientes(nome))",
       )
       .eq("emprestimos.user_id", user.id)
-      .in("status", ["pendente", "atrasada", "parcial"])
-      .gte("vencimento", inicio)
-      .lte("vencimento", fim),
+      .in("status", ["pendente", "atrasada", "parcial"]),
   ]);
+
+  // Filtra no código as parcelas que caem no mês visível
+  const parcelas = (parcelasTodas.data || []).filter((p: any) => {
+    return p.vencimento >= inicio && p.vencimento <= fim;
+  });
 
   // Normaliza eventos manuais
   const manuais: EventoCalendario[] = (eventosManuais.data || []).map(
@@ -79,7 +86,7 @@ export async function listarEventosMes(ano: number, mes: number) {
   );
 
   // Normaliza vencimentos de parcelas (eventos automáticos)
-  const vencimentos: EventoCalendario[] = (parcelas.data || []).map((p: any) => {
+  const vencimentos: EventoCalendario[] = parcelas.map((p: any) => {
     const nome = p.emprestimos?.clientes?.nome || "—";
     const valorRestante = Number(p.valor) - (Number(p.valor_pago) || 0);
     const atrasada = new Date(p.vencimento + "T00:00:00") < new Date();
