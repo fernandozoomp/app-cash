@@ -82,6 +82,28 @@ export interface Cobranca {
   created_at: string;
 }
 
+// Tabela: templates de mensagem WhatsApp
+export type CategoriaTemplate =
+  | "cobranca"
+  | "lembrete"
+  | "aviso"
+  | "agradecimento"
+  | "conclusao"
+  | "outros";
+
+export interface TemplateMensagem {
+  id: string;
+  user_id: string | null; // null = template global do sistema
+  nome: string;
+  categoria: CategoriaTemplate;
+  conteudo: string;
+  icone: string;
+  ativo: boolean;
+  criado_pelo_sistema: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ProdutoAdega {
   id: string;
   user_id: string;

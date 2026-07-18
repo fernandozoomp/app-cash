@@ -4,9 +4,11 @@
 // Mostra todas as parcelas pendentes/atrasadas/parciais em um tabelão
 // com botões de WhatsApp, pagamento e histórico.
 
-import { AlertTriangle, CalendarClock, HandCoins, Wallet } from "lucide-react";
+import { AlertTriangle, CalendarClock, HandCoins, Wallet, Sparkles } from "lucide-react";
+import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { TabelaCobrancas } from "@/components/cobranca/tabela-cobrancas";
 import { listarCobrancasPendentes } from "@/app/actions/cobrancas";
 import { formatarMoeda } from "@/lib/constants";
@@ -36,6 +38,14 @@ export default async function CobrancasPage() {
       <PageHeader
         titulo="Cobranças"
         descricao="Rotina diária de lembretes e pagamentos"
+        acoes={
+          <Button asChild variant="outline" size="sm">
+            <Link href="/cobrancas/templates">
+              <Sparkles className="size-4" />
+              Gerenciar templates
+            </Link>
+          </Button>
+        }
       />
 
       {/* Resumo: 4 mini cards */}
