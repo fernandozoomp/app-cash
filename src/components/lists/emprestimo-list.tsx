@@ -8,7 +8,7 @@
 //   - Pagamento (modal que suporta parcial/total)
 //   - Histórico (timeline de cobranças já feitas)
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   ChevronDown,
   ChevronRight,
@@ -20,6 +20,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
+import { FiltrosBar } from "@/components/listas/filtros-bar";
 import { formatarMoeda, formatarData } from "@/lib/constants";
 import { statusParcelaVencida } from "@/lib/finance/calculadora";
 import { BotaoWhatsApp } from "@/components/cobranca/botao-whatsapp";
@@ -34,6 +35,8 @@ interface EmprestimoComParcelas extends EmprestimoComCliente {
   parcelas?: Parcela[];
 }
 
+type FiltroStatus = "todos" | "ativo" | "quitado" | "atrasado";
+
 export function EmprestimoList({
   emprestimos,
 }: {
@@ -41,6 +44,36 @@ export function EmprestimoList({
 }) {
   const [expandido, setExpandido] = useState<string | null>(
     emprestimos[0]?.id || null,
+  );
+
+  // Filtros
+  const [busca, setBusca] = useState("");
+  const [status, setStatus] = useState<FiltroStatus>("todos");
+
+  const filtrados = useMemo(() => {
+    let resultado = [...emprestimos];
+
+    if (busca.trim()) {
+      const termo = busca.toLowerCase().trim();
+      resultado = resultado.filter((e) =>
+        (e.clientes?.nome || "").toLowerCase().includes(termo),
+      );
+    }
+
+    if (status !== "todos") {
+      resultado = resultado.filter((e) => e.status === status);
+    }
+
+    return resultado;
+  }, [emprestimos, busca, status]);
+
+  const counts = useMemo(
+    () => ({
+      ativo: emprestimos.filter((e) => e.status === "ativo").length,
+      quitado: emprestimos.filter((e) => e.status === "quitado").length,
+      atrasado: emprestimos.filter((e) => e.status === "atrasado").length,
+    }),
+    [emprestimos],
   );
 
   if (emprestimos.length === 0) {
@@ -55,9 +88,33 @@ export function EmprestimoList({
   }
 
   return (
-    <ul className="space-y-3">
-      {emprestimos.map((emp) => {
-        const aberto = expandido === emp.id;
+    <>
+      <FiltrosBar
+        busca={busca}
+        onBusca={setBusca}
+        placeholderBusca="Buscar por cliente..."
+        totalResultados={filtrados.length}
+        chips={[
+          { valor: "todos", label: "Todos", count: emprestimos.length },
+          { valor: "ativo", label: "Ativos", count: counts.ativo },
+          { valor: "atrasado", label: "Atrasados", count: counts.atrasado },
+          { valor: "quitado", label: "Quitados", count: counts.quitado },
+        ]}
+        filtroAtivo={status}
+        onFiltro={(v) => setStatus(v as FiltroStatus)}
+      />
+
+      {filtrados.length === 0 ? (
+        <EmptyState
+          titulo="Nenhum empréstimo encontrado"
+          descricao="Tente outro filtro ou termo de busca."
+          icone="hand-coins"
+          compacto
+        />
+      ) : (
+        <ul className="space-y-3">
+          {filtrados.map((emp) => {
+            const aberto = expandido === emp.id;
         const parcelas = emp.parcelas || [];
         const pagas = parcelas.filter((p) => p.status === "paga").length;
         const progresso =
@@ -122,7 +179,9 @@ export function EmprestimoList({
           </li>
         );
       })}
-    </ul>
+        </ul>
+      )}
+    </>
   );
 }
 

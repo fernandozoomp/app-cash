@@ -1,10 +1,10 @@
 "use client";
 
 // ============================================================================
-// LISTA DE SUCATAS — com confirmação elegante
+// LISTA DE SUCATAS — com confirmação elegante + FILTROS
 // ============================================================================
 
-import { useTransition } from "react";
+import { useState, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Trash2, Loader2 } from "lucide-react";
@@ -13,13 +13,47 @@ import { apagarSucata } from "@/app/actions/sucatas";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 import { useConfirm } from "@/components/confirm-dialog";
+import { FiltrosBar } from "@/components/listas/filtros-bar";
 import { formatarMoeda, formatarData } from "@/lib/constants";
 import type { MovimentacaoSucata } from "@/lib/types/database";
+
+type FiltroTipo = "todos" | "compra" | "venda";
 
 export function SucataList({ itens }: { itens: MovimentacaoSucata[] }) {
   const [pendente, startTransition] = useTransition();
   const router = useRouter();
   const confirmar = useConfirm();
+
+  // Filtros
+  const [busca, setBusca] = useState("");
+  const [tipo, setTipo] = useState<FiltroTipo>("todos");
+
+  const filtrados = useMemo(() => {
+    let resultado = [...itens];
+
+    if (busca.trim()) {
+      const termo = busca.toLowerCase().trim();
+      resultado = resultado.filter(
+        (s) =>
+          s.material.toLowerCase().includes(termo) ||
+          (s.observacoes || "").toLowerCase().includes(termo),
+      );
+    }
+
+    if (tipo !== "todos") {
+      resultado = resultado.filter((s) => s.tipo === tipo);
+    }
+
+    return resultado;
+  }, [itens, busca, tipo]);
+
+  const counts = useMemo(
+    () => ({
+      compra: itens.filter((s) => s.tipo === "compra").length,
+      venda: itens.filter((s) => s.tipo === "venda").length,
+    }),
+    [itens],
+  );
 
   async function handleApagar(item: MovimentacaoSucata) {
     const ok = await confirmar({
@@ -52,12 +86,35 @@ export function SucataList({ itens }: { itens: MovimentacaoSucata[] }) {
   }
 
   return (
-    <ul className="divide-y">
-      {itens.map((s) => (
-        <li
-          key={s.id}
-          className="group flex items-center justify-between gap-3 py-3"
-        >
+    <>
+      <FiltrosBar
+        busca={busca}
+        onBusca={setBusca}
+        placeholderBusca="Buscar por material..."
+        totalResultados={filtrados.length}
+        chips={[
+          { valor: "todos", label: "Todos", count: itens.length },
+          { valor: "compra", label: "Compras", count: counts.compra },
+          { valor: "venda", label: "Vendas", count: counts.venda },
+        ]}
+        filtroAtivo={tipo}
+        onFiltro={(v) => setTipo(v as FiltroTipo)}
+      />
+
+      {filtrados.length === 0 ? (
+        <EmptyState
+          titulo="Nenhuma movimentação encontrada"
+          descricao="Tente outro filtro ou termo de busca."
+          icone="recycle"
+          compacto
+        />
+      ) : (
+        <ul className="divide-y">
+          {filtrados.map((s) => (
+            <li
+              key={s.id}
+              className="group flex items-center justify-between gap-3 py-3"
+            >
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <span
@@ -97,7 +154,9 @@ export function SucataList({ itens }: { itens: MovimentacaoSucata[] }) {
             </Button>
           </div>
         </li>
-      ))}
-    </ul>
+          ))}
+        </ul>
+      )}
+    </>
   );
 }
