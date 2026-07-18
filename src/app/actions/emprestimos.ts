@@ -162,14 +162,21 @@ export async function listarEmprestimosComParcelas() {
 // --------------------------------------------------------------------------
 export async function obterEmprestimo(id: string) {
   const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
+  if (!user) return { error: "Não autorizado" };
+
+  // ✅ FIX-01: valida posse antes de retornar detalhes
   const { data: emprestimo, error: errEmp } = await supabase
     .from("emprestimos")
     .select("*, clientes(nome, telefone)")
     .eq("id", id)
+    .eq("user_id", user.id) // filtro de posse
     .single();
 
-  if (errEmp) return { error: errEmp.message };
+  if (errEmp) return { error: "Empréstimo não encontrado" };
 
   const { data: parcelas, error: errParc } = await supabase
     .from("parcelas")

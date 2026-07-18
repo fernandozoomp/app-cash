@@ -28,8 +28,8 @@ function forcaSenha(senha: string): {
   texto: string;
 } {
   let pontos = 0;
-  if (senha.length >= 6) pontos++;
-  if (senha.length >= 10) pontos++;
+  if (senha.length >= 8) pontos++;
+  if (senha.length >= 12) pontos++;
   if (/[A-Z]/.test(senha) && /[a-z]/.test(senha)) pontos++;
   if (/[0-9]/.test(senha) || /[^A-Za-z0-9]/.test(senha)) pontos++;
 
@@ -61,8 +61,8 @@ export default function CadastroPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    if (senha.length < 6) {
-      toast.error("A senha precisa ter pelo menos 6 caracteres.");
+    if (senha.length < 8) {
+      toast.error("A senha precisa ter pelo menos 8 caracteres.");
       return;
     }
     if (senha !== confirmar) {
@@ -126,7 +126,7 @@ export default function CadastroPage() {
               <Input
                 id="senha"
                 type={mostrarSenha ? "text" : "password"}
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Mínimo 8 caracteres"
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
                 required

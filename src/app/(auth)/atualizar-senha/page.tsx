@@ -33,8 +33,8 @@ export default function AtualizarSenhaPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    if (senha.length < 6) {
-      toast.error("A senha precisa ter pelo menos 6 caracteres.");
+    if (senha.length < 8) {
+      toast.error("A senha precisa ter pelo menos 8 caracteres.");
       return;
     }
     if (senha !== confirmar) {
@@ -71,7 +71,7 @@ export default function AtualizarSenhaPage() {
               <Input
                 id="senha"
                 type={mostrar ? "text" : "password"}
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Mínimo 8 caracteres"
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
                 required

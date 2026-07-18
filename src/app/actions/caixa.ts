@@ -9,6 +9,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { validarPosse } from "@/lib/auth/posse";
 import type { Empreendimento, FormaPagamento, TipoTransacao } from "@/lib/types/database";
 
 // --------------------------------------------------------------------------
@@ -110,6 +111,16 @@ export async function listarTransacoes(filtros?: {
 // --------------------------------------------------------------------------
 export async function apagarTransacao(id: string) {
   const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { error: "Não autorizado" };
+
+  // ✅ FIX-01: valida posse antes de apagar
+  const dono = await validarPosse(supabase, user.id, "transacoes", id);
+  if (!dono) return { error: "Transação não encontrada" };
+
   const { error } = await supabase.from("transacoes").delete().eq("id", id);
 
   if (error) return { error: error.message };

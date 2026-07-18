@@ -6,6 +6,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { validarPosse } from "@/lib/auth/posse";
 
 // --------------------------------------------------------------------------
 // CRIAR CLIENTE
@@ -69,6 +70,15 @@ export async function atualizarCliente(
   input: { nome?: string; telefone?: string; observacoes?: string },
 ) {
   const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { error: "Não autorizado" };
+
+  // ✅ FIX-01: valida posse antes de atualizar (defesa em profundidade contra IDOR)
+  const dono = await validarPosse(supabase, user.id, "clientes", id);
+  if (!dono) return { error: "Cliente não encontrado" };
 
   const update: Record<string, string | null> = {};
   if (input.nome !== undefined) update.nome = input.nome.trim();
@@ -96,6 +106,16 @@ export async function atualizarCliente(
 // --------------------------------------------------------------------------
 export async function apagarCliente(id: string) {
   const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { error: "Não autorizado" };
+
+  // ✅ FIX-01: valida posse antes de apagar
+  const dono = await validarPosse(supabase, user.id, "clientes", id);
+  if (!dono) return { error: "Cliente não encontrado" };
+
   const { error } = await supabase.from("clientes").delete().eq("id", id);
 
   if (error) return { error: error.message };

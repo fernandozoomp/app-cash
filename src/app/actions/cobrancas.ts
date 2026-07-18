@@ -12,6 +12,7 @@
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { statusParcelaVencida } from "@/lib/finance/calculadora";
+import { validarPosseParcela } from "@/lib/auth/posse";
 import type { CanalCobranca } from "@/lib/types/database";
 
 // --------------------------------------------------------------------------
@@ -28,6 +29,10 @@ export async function registrarCobranca(input: {
   } = await supabase.auth.getUser();
 
   if (!user) return { error: "Não autorizado" };
+
+  // ✅ FIX-01: valida posse da parcela (via JOIN com emprestimos)
+  const donoParcela = await validarPosseParcela(supabase, user.id, input.parcela_id);
+  if (!donoParcela) return { error: "Parcela não encontrada" };
 
   // 1) Insere na tabela cobrancas
   const { error: errInsert } = await supabase.from("cobrancas").insert({
@@ -84,6 +89,10 @@ export async function registrarPagamento(input: {
   if (!user) return { error: "Não autorizado" };
   if (!input.valor_pago || input.valor_pago <= 0)
     return { error: "Valor deve ser maior que zero" };
+
+  // ✅ FIX-01: valida posse da parcela (defesa em profundidade)
+  const donoParcela = await validarPosseParcela(supabase, user.id, input.parcela_id);
+  if (!donoParcela) return { error: "Parcela não encontrada" };
 
   // 1) Busca a parcela + dados do empréstimo
   const { data: parcela, error: errBusca } = await supabase

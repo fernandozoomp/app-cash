@@ -8,6 +8,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { validarPosseTemplate } from "@/lib/auth/posse";
 import type { CategoriaTemplate } from "@/lib/types/database";
 
 // --------------------------------------------------------------------------
@@ -86,6 +87,17 @@ export async function atualizarTemplate(
   },
 ) {
   const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { error: "Não autorizado" };
+
+  // ✅ FIX-01: valida posse (só dono pode editar; sistema é read-only)
+  const { podeEditar, existe } = await validarPosseTemplate(supabase, user.id, id);
+  if (!existe) return { error: "Template não encontrado" };
+  if (!podeEditar)
+    return { error: "Templates do sistema não podem ser editados. Duplique para personalizar." };
 
   const update: Record<string, string> = {};
   if (input.nome !== undefined) update.nome = input.nome.trim();
@@ -112,6 +124,18 @@ export async function atualizarTemplate(
 // --------------------------------------------------------------------------
 export async function apagarTemplate(id: string) {
   const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { error: "Não autorizado" };
+
+  // ✅ FIX-01: valida posse antes de apagar
+  const { podeEditar, existe } = await validarPosseTemplate(supabase, user.id, id);
+  if (!existe) return { error: "Template não encontrado" };
+  if (!podeEditar)
+    return { error: "Templates do sistema não podem ser apagados." };
+
   const { error } = await supabase
     .from("templates_mensagem")
     .delete()

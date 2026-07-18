@@ -6,6 +6,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { validarPosse } from "@/lib/auth/posse";
 import type { TipoSucata } from "@/lib/types/database";
 
 // --------------------------------------------------------------------------
@@ -95,6 +96,16 @@ export async function listarSucatas() {
 // --------------------------------------------------------------------------
 export async function apagarSucata(id: string) {
   const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { error: "Não autorizado" };
+
+  // ✅ FIX-01: valida posse antes de apagar
+  const dono = await validarPosse(supabase, user.id, "movimentacao_sucatas", id);
+  if (!dono) return { error: "Movimentação não encontrada" };
+
   const { error } = await supabase
     .from("movimentacao_sucatas")
     .delete()

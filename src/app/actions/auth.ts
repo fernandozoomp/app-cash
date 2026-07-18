@@ -109,8 +109,8 @@ export async function recuperarSenha(input: { email: string }) {
 export async function atualizarSenha(input: { senha: string }) {
   const supabase = await createSupabaseServerClient();
 
-  if (input.senha.length < 6) {
-    return { error: "A senha precisa ter pelo menos 6 caracteres." };
+  if (input.senha.length < 8) {
+    return { error: "A senha precisa ter pelo menos 8 caracteres." };
   }
 
   const { error } = await supabase.auth.updateUser({
@@ -134,7 +134,9 @@ function traduzirErroAuth(mensagem: string): string {
     "User already registered":
       "Este e-mail já está cadastrado. Tente entrar em vez de cadastrar.",
     "Password should be at least 6 characters.":
-      "A senha deve ter pelo menos 6 caracteres.",
+      "A senha deve ter pelo menos 8 caracteres.",
+    "Password should be at least 8 characters.":
+      "A senha deve ter pelo menos 8 caracteres.",
     "Email not confirmed":
       "Você precisa confirmar seu e-mail antes de entrar. Verifique sua caixa de entrada e o spam.",
   };

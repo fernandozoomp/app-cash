@@ -135,6 +135,27 @@ export function parseCSV(conteudo: string): ResultadoParse {
     };
   }
 
+  // ✅ FIX-05: Limites de segurança para evitar DoS e abusos
+  // Limite de 10.000 linhas (mais que suficiente para qualquer operação real)
+  const TAMANHO_MAX_BYTES = 5 * 1024 * 1024; // 5MB
+  const MAX_LINHAS = 10_000;
+  const MAX_CARACTERES_CAMPO = 1000;
+
+  if (conteudo.length > TAMANHO_MAX_BYTES) {
+    return {
+      tipo,
+      linhas: [],
+      totalLinhas: 0,
+      linhasIgnoradas: 0,
+      erros: [
+        {
+          linha: 0,
+          mensagem: "Arquivo muito grande (máximo 5MB).",
+        },
+      ],
+    };
+  }
+
   // Quebra em linhas e detecta separador
   const linhasBrutas = conteudo
     .replace(/\r\n/g, "\n")
@@ -157,6 +178,21 @@ export function parseCSV(conteudo: string): ResultadoParse {
     };
   }
 
+  if (linhasBrutas.length > MAX_LINHAS + 1) {
+    return {
+      tipo,
+      linhas: [],
+      totalLinhas: 0,
+      linhasIgnoradas: 0,
+      erros: [
+        {
+          linha: 0,
+          mensagem: `Muitas linhas (${linhasBrutas.length}). Máximo: ${MAX_LINHAS}.`,
+        },
+      ],
+    };
+  }
+
   const separador = detectarSeparador(linhasBrutas[0]);
   const cabecalho = parsearLinhaCSV(linhasBrutas[0], separador).map((c) =>
     c.toLowerCase().trim(),
@@ -170,7 +206,11 @@ export function parseCSV(conteudo: string): ResultadoParse {
     // Constrói objeto da linha mapeando coluna → valor
     const obj: Record<string, string> = {};
     cabecalho.forEach((col, idx) => {
-      obj[col] = (colunas[idx] || "").trim();
+      // ✅ FIX-05: sanitiza cada campo (remove chars de controle + limita tamanho)
+      const raw = (colunas[idx] || "")
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
+        .slice(0, 1000);
+      obj[col] = raw.trim();
     });
 
     // Pula linhas completamente vazias
