@@ -28,10 +28,14 @@ export default async function CobrancasPage() {
   const vencemHoje = parcelas.filter(
     (p) => diasAteVencimento(p.vencimento) === 0,
   );
-  const totalAReceber = parcelas.reduce(
-    (s, p) => s + (p.valor - p.valor_pago),
-    0,
-  );
+  // totalAReceber: soma do saldo devedor de cada parcela
+  // (valor_total - valor_pago). Usamos Number() para converter null/undefined
+  // em 0 com segurança (defesa contra dados antigos sem valor_pago).
+  const totalAReceber = parcelas.reduce((s, p) => {
+    const valor = Number(p.valor) || 0;
+    const pago = Number(p.valor_pago) || 0;
+    return s + Math.max(0, valor - pago);
+  }, 0);
 
   return (
     <>
