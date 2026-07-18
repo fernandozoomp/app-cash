@@ -7,6 +7,7 @@
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { validarPosse } from "@/lib/auth/posse";
+import type { EntidadeNota } from "@/lib/types/database";
 
 // --------------------------------------------------------------------------
 // CRIAR CLIENTE
@@ -123,4 +124,104 @@ export async function apagarCliente(id: string) {
   revalidatePath("/clientes");
   revalidatePath("/emprestimos");
   return { success: true };
+}
+
+// --------------------------------------------------------------------------
+// OBTER CLIENTE POR ID (com validação de posse)
+// --------------------------------------------------------------------------
+export async function obterCliente(id: string) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { error: "Não autorizado" };
+
+  const { data, error } = await supabase
+    .from("clientes")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .single();
+
+  if (error) return { error: "Cliente não encontrado" };
+  return { data };
+}
+
+// --------------------------------------------------------------------------
+// HISTÓRICO COMPLETO DO CLIENTE (para a página de detalhes)
+// --------------------------------------------------------------------------
+// Retorna: empréstimos, pagamentos recebidos, cobranças enviadas e totais.
+export async function obterHistoricoCliente(id: string) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { error: "Não autorizado" };
+
+  const dono = await validarPosse(supabase, user.id, "clientes", id);
+  if (!dono) return { error: "Cliente não encontrado" };
+
+  // Busca paralela: empréstimos + parcelas pagas + cobranças
+  const [emp, parcelasPagas, cobrancas] = await Promise.all([
+    // Empréstimos do cliente
+    supabase
+      .from("emprestimos")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("cliente_id", id)
+      .order("created_at", { ascending: false }),
+
+    // Parcelas pagas deste cliente (via JOIN)
+    supabase
+      .from("parcelas")
+      .select(
+        "id, numero, valor, valor_pago, data_pagamento, vencimento, emprestimos!inner(id, cliente_id)",
+      )
+      .eq("emprestimos.cliente_id", id)
+      .eq("status", "paga")
+      .order("data_pagamento", { ascending: false }),
+
+    // Cobranças enviadas a este cliente (via JOIN parcela → emprestimo)
+    supabase
+      .from("cobrancas")
+      .select("id, data, canal, mensagem, parcelas!inner(emprestimos!inner(cliente_id))")
+      .eq("parcelas.emprestimos.cliente_id", id)
+      .order("data", { ascending: false })
+      .limit(50),
+  ]);
+
+  // Totais financeiros
+  const emprestimos = emp.data || [];
+  const totalEmprestado = emprestimos.reduce(
+    (s, e: any) => s + Number(e.valor_principal),
+    0,
+  );
+  const totalRecebido = (parcelasPagas.data || []).reduce(
+    (s, p: any) => s + (Number(p.valor_pago) || Number(p.valor)),
+    0,
+  );
+  const totalAReceber =
+    totalEmprestado +
+    emprestimos.reduce(
+      (s, e: any) => s + (Number(e.valor_total) - Number(e.valor_principal)),
+      0,
+    ) -
+    totalRecebido;
+
+  return {
+    emprestimos: emprestimos as any[],
+    pagamentos: (parcelasPagas.data || []) as any[],
+    cobrancas: (cobrancas.data || []) as any[],
+    totais: {
+      totalEmprestado,
+      totalRecebido,
+      totalAReceber: Math.max(0, totalAReceber),
+      numEmprestimos: emprestimos.length,
+      numAtivos: emprestimos.filter((e: any) => e.status === "ativo").length,
+      numQuitados: emprestimos.filter((e: any) => e.status === "quitado")
+        .length,
+    },
+  };
 }

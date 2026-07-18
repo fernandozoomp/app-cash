@@ -91,6 +91,27 @@ export type CategoriaTemplate =
   | "conclusao"
   | "outros";
 
+// Tabela: notas (polimórfica — serve para qualquer entidade)
+export type EntidadeNota =
+  | "cliente"
+  | "emprestimo"
+  | "transacao"
+  | "parcela"
+  | "conta"
+  | "evento";
+export type TipoNota = "nota" | "lembrete" | "alerta";
+
+export interface Nota {
+  id: string;
+  user_id: string;
+  entidade_tipo: EntidadeNota;
+  entidade_id: string;
+  conteudo: string;
+  tipo: TipoNota;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface TemplateMensagem {
   id: string;
   user_id: string | null; // null = template global do sistema
