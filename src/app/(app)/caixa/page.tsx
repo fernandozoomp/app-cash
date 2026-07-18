@@ -1,14 +1,11 @@
 // ============================================================================
 // PÁGINA: FLUXO DE CAIXA
 // ============================================================================
-// Server Component. Agora com:
-// - Resumo do dia
-// - Formulário de lançamento manual
-// - Upload de CSV (extrato bancário)
-// - Lista de transações recentes
+// Apenas lançamento manual e listagem. A importação em lote (CSV) ficou em
+// sua própria página /importar, pois agora suporta 4 tipos diferentes.
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload, PlusCircle } from "lucide-react";
+import { PlusCircle } from "lucide-react";
+import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import {
   Card,
@@ -17,9 +14,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { TransacaoForm } from "@/components/forms/transacao-form";
 import { TransacaoList } from "@/components/lists/transacao-list";
-import { CSVUpload } from "@/components/forms/csv-upload";
 import { listarTransacoes } from "@/app/actions/caixa";
 
 export default async function CaixaPage() {
@@ -45,7 +42,15 @@ export default async function CaixaPage() {
     <>
       <PageHeader
         titulo="Fluxo de Caixa"
-        descricao="Entradas, saídas e importação de extrato"
+        descricao="Entradas e saídas de dinheiro"
+        acoes={
+          <Button asChild variant="outline" size="sm">
+            <Link href="/importar">
+              <PlusCircle className="size-4" />
+              Importar planilha
+            </Link>
+          </Button>
+        }
       />
 
       {/* Resumo do dia */}
@@ -81,37 +86,18 @@ export default async function CaixaPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Coluna 1: Lançar (manual ou CSV) */}
         <Card>
           <CardHeader>
             <CardTitle>Adicionar movimentação</CardTitle>
             <CardDescription>
-              Registre na hora ou importe um extrato
+              Registre uma entrada ou saída na hora
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="manual">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="manual">
-                  <PlusCircle className="size-4" />
-                  Manual
-                </TabsTrigger>
-                <TabsTrigger value="csv">
-                  <Upload className="size-4" />
-                  Importar CSV
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="manual" className="mt-4">
-                <TransacaoForm />
-              </TabsContent>
-              <TabsContent value="csv" className="mt-4">
-                <CSVUpload />
-              </TabsContent>
-            </Tabs>
+            <TransacaoForm />
           </CardContent>
         </Card>
 
-        {/* Coluna 2: Lista de transações */}
         <Card>
           <CardHeader>
             <CardTitle>Movimentações recentes</CardTitle>

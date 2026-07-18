@@ -13,6 +13,7 @@ import {
   Wine,
   Recycle,
   FileBarChart,
+  Upload,
   type LucideIcon,
 } from "lucide-react";
 
@@ -144,6 +145,7 @@ export type ItemMenu = {
 export const ITENS_MENU: ItemMenu[] = [
   { titulo: "Início", href: "/", icone: LayoutDashboard },
   { titulo: "Caixa", href: "/caixa", icone: Wallet },
+  { titulo: "Importar", href: "/importar", icone: Upload },
   { titulo: "Empréstimos", href: "/emprestimos", icone: HandCoins },
   { titulo: "Clientes", href: "/clientes", icone: Users },
   { titulo: "Adega", href: "/adega", icone: Wine },
