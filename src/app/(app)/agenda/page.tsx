@@ -20,7 +20,7 @@ export default async function AgendaPage() {
         descricao="Vencimentos, follow-ups e compromissos"
       />
       <AgendaClient
-        eventos={eventos}
+        eventosIniciais={eventos}
         mesInicial={hoje.getMonth()}
         anoInicial={hoje.getFullYear()}
       />

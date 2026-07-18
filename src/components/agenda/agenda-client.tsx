@@ -3,13 +3,14 @@
 // ============================================================================
 // AGENDA CLIENT — interatividade da página /agenda
 // ============================================================================
-// Envolve o calendário (CalendarioMensal) + painel lateral com eventos
-// do dia selecionado + botão exportar .ics + botão novo evento.
+// - Busca eventos dinamicamente quando o mês muda (navegação ← →)
+// - Mostra bolinhas coloridas no calendário
+// - Painel lateral com eventos do dia selecionado
+// - Exportar .ics universal
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import Link from "next/link";
 import {
   Download,
   Plus,
@@ -17,7 +18,6 @@ import {
   Circle,
   Trash2,
   Loader2,
-  CalendarX,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -33,16 +33,21 @@ import {
   alternarConcluido,
   apagarEvento,
   listarTodosEventesParaExport,
+  listarEventosMes,
 } from "@/app/actions/agenda";
 import type { EventoCalendario } from "@/app/actions/agenda";
 
 interface Props {
-  eventos: EventoCalendario[];
+  eventosIniciais: EventoCalendario[];
   mesInicial: number;
   anoInicial: number;
 }
 
-export function AgendaClient({ eventos, mesInicial, anoInicial }: Props) {
+export function AgendaClient({
+  eventosIniciais,
+  mesInicial,
+  anoInicial,
+}: Props) {
   const router = useRouter();
   const confirmar = useConfirm();
   const [pendente, startTransition] = useTransition();
@@ -50,6 +55,40 @@ export function AgendaClient({ eventos, mesInicial, anoInicial }: Props) {
   const [diaSelecionado, setDiaSelecionado] = useState<string | null>(null);
   const [novoEvAberto, setNovoEvAberto] = useState(false);
   const [novoEvData, setNovoEvData] = useState<string | undefined>(undefined);
+
+  // Estado do mês visível (controla tanto o calendário quanto a busca)
+  const [anoVisivel, setAnoVisivel] = useState(anoInicial);
+  const [mesVisivel, setMesVisivel] = useState(mesInicial);
+  const [eventos, setEventos] = useState<EventoCalendario[]>(eventosIniciais);
+  const [carregandoMes, setCarregandoMes] = useState(false);
+
+  // Busca eventos do mês visível (sempre que muda)
+  const buscarEventos = useCallback(async (ano: number, mes: number) => {
+    setCarregandoMes(true);
+    try {
+      const { data } = await listarEventosMes(ano, mes);
+      setEventos(data || []);
+    } catch {
+      // Erro silencioso — mantém eventos atuais
+    } finally {
+      setCarregandoMes(false);
+    }
+  }, []);
+
+  // Callback quando o usuário navega de mês no calendário
+  function handleMudancaMes(novoAno: number, novoMes: number) {
+    setAnoVisivel(novoAno);
+    setMesVisivel(novoMes);
+    setDiaSelecionado(null);
+    buscarEventos(novoAno, novoMes);
+  }
+
+  // Atualiza eventos após criar/apagar/concluir (refresh da página reexecuta)
+  useEffect(() => {
+    // Re-busca quando o mês visível muda
+    buscarEventos(anoVisivel, mesVisivel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Eventos do dia selecionado
   const eventosDia = diaSelecionado
@@ -146,14 +185,20 @@ export function AgendaClient({ eventos, mesInicial, anoInicial }: Props) {
                 eventos={eventos}
                 onSelecionarDia={handleSelecionarDia}
                 diaSelecionado={diaSelecionado || undefined}
+                mesInicial={mesVisivel}
+                anoInicial={anoVisivel}
+                onMudancaMes={handleMudancaMes}
               />
             </CardContent>
           </Card>
 
-          {/* Legenda */}
+          {/* Legenda expandida com todos os tipos */}
           <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <span className="size-2 rounded-full bg-rose-500" /> Vencimento
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="size-2 rounded-full bg-emerald-500" /> Pagamento
             </span>
             <span className="flex items-center gap-1">
               <span className="size-2 rounded-full bg-amber-500" /> Follow-up
@@ -162,7 +207,7 @@ export function AgendaClient({ eventos, mesInicial, anoInicial }: Props) {
               <span className="size-2 rounded-full bg-blue-500" /> Reunião
             </span>
             <span className="flex items-center gap-1">
-              <span className="size-2 rounded-full bg-emerald-500" /> Pagamento
+              <span className="size-2 rounded-full bg-slate-400" /> Empréstimo/Outros
             </span>
           </div>
         </div>

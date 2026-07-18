@@ -33,16 +33,25 @@ interface Props {
   eventos: EventoCalendario[];
   onSelecionarDia: (dataISO: string) => void;
   diaSelecionado?: string;
+  // Controle de mês/ano: o componente é "controlado" pelo pai, que decide
+  // qual mês mostrar (e faz a busca de eventos quando muda).
+  mesInicial?: number;
+  anoInicial?: number;
+  onMudancaMes?: (ano: number, mes: number) => void;
 }
 
 export function CalendarioMensal({
   eventos,
   onSelecionarDia,
   diaSelecionado,
+  mesInicial,
+  anoInicial,
+  onMudancaMes,
 }: Props) {
   const hoje = new Date();
-  const [ano, setAno] = useState(hoje.getFullYear());
-  const [mes, setMes] = useState(hoje.getMonth());
+  // Se o pai controla mes/ano, usamos esses valores. Senão, estado interno.
+  const ano = anoInicial ?? hoje.getFullYear();
+  const mes = mesInicial ?? hoje.getMonth();
 
   // Agrupa eventos por data (YYYY-MM-DD)
   const eventosPorDia = useMemo(() => {
@@ -78,20 +87,20 @@ export function CalendarioMensal({
   }, [ano, mes]);
 
   function mesAnterior() {
-    if (mes === 0) {
-      setMes(11);
-      setAno(ano - 1);
-    } else {
-      setMes(mes - 1);
+    if (onMudancaMes) {
+      const novoMes = mes === 0 ? 11 : mes - 1;
+      const novoAno = mes === 0 ? ano - 1 : ano;
+      onMudancaMes(novoAno, novoMes);
+      return;
     }
   }
 
   function proximoMes() {
-    if (mes === 11) {
-      setMes(0);
-      setAno(ano + 1);
-    } else {
-      setMes(mes + 1);
+    if (onMudancaMes) {
+      const novoMes = mes === 11 ? 0 : mes + 1;
+      const novoAno = mes === 11 ? ano + 1 : ano;
+      onMudancaMes(novoAno, novoMes);
+      return;
     }
   }
 

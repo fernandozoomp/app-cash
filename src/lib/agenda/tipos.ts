@@ -44,6 +44,15 @@ export const INFO_TIPOS_EVENTO: Record<TipoEvento, InfoTipoEvento> = {
   },
 };
 
+// Legendas por ORIGEM (de onde o evento veio) — para mostrar na UI
+export const LEGENDA_ORIGEM: Record<string, { emoji: string; label: string }> = {
+  manual: { emoji: "📌", label: "Evento manual" },
+  vencimento: { emoji: "🔴", label: "Vencimento de parcela" },
+  inicio_emprestimo: { emoji: "💰", label: "Início de empréstimo" },
+  cobranca: { emoji: "📲", label: "Cobrança enviada" },
+  pagamento: { emoji: "✅", label: "Pagamento recebido" },
+};
+
 export function infoTipoEvento(tipo: TipoEvento): InfoTipoEvento {
   return INFO_TIPOS_EVENTO[tipo] || INFO_TIPOS_EVENTO.outros;
 }
