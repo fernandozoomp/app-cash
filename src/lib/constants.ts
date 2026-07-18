@@ -15,6 +15,7 @@ import {
   FileBarChart,
   Upload,
   BellRing,
+  CalendarDays,
   type LucideIcon,
 } from "lucide-react";
 
@@ -150,6 +151,7 @@ export const ITENS_MENU: ItemMenu[] = [
   { titulo: "Empréstimos", href: "/emprestimos", icone: HandCoins },
   { titulo: "Cobranças", href: "/cobrancas", icone: BellRing },
   { titulo: "Clientes", href: "/clientes", icone: Users },
+  { titulo: "Agenda", href: "/agenda", icone: CalendarDays },
   { titulo: "Adega", href: "/adega", icone: Wine },
   { titulo: "Sucatas", href: "/sucatas", icone: Recycle },
   { titulo: "Relatórios", href: "/relatorios", icone: FileBarChart },

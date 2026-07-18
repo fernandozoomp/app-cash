@@ -112,6 +112,29 @@ export interface Nota {
   updated_at: string;
 }
 
+// Tabela: eventos de agenda (manuais — vencimentos são dinâmicos)
+export type TipoEvento =
+  | "vencimento"
+  | "followup"
+  | "reuniao"
+  | "pagamento"
+  | "outros";
+
+export interface EventoAgenda {
+  id: string;
+  user_id: string;
+  titulo: string;
+  descricao: string | null;
+  data: string;
+  hora: string | null;
+  tipo: TipoEvento;
+  entidade_tipo: string | null;
+  entidade_id: string | null;
+  concluido: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface TemplateMensagem {
   id: string;
   user_id: string | null; // null = template global do sistema
